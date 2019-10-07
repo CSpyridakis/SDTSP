@@ -1,0 +1,89 @@
+#!/bin/bash
+##################################################################################################
+#   results script
+#
+#   Author : Spyridakis Christos
+#   Created Date : 7/10/2019
+#   Last Updated : 8/10/2019
+#   Email : spyridakischristos@gmail.com
+#
+#   Description : 
+#
+#
+#
+#
+##################################################################################################
+TRUE=0
+FALSE=1
+
+INPUT_FILE=""
+OUTPUT_FILE=""
+ERRORS_FILE=""
+DEBUG=${FALSE}
+QUIET=${FALSE}
+CHECK=${FALSE}
+
+#AKA - Help menu
+usage() {
+    echo "Usage: `basename ${0}` [OPTION]... [FILE]..."
+    echo "#TODO Description:"
+    echo 
+    echo "Options:"
+    echo "  -c, --check               check input file"
+    echo "  -d, --debug               debug mode on"
+    echo "  -e, --error               display errors in given file"
+    echo "  -h, --help                print this help menu"   
+    echo "  -i, --input               give input file name"
+    echo "  -o, --ouput               give output file name"
+    echo "  -q, --quiet               disable errors reporting"
+    echo 
+    echo
+    echo "Exit status:"
+    echo "   0 if OK,"
+    echo "   1 if "
+    echo 
+    echo "Implementation:"
+    echo "   version         `basename ${0}` 0.0.1"
+    echo "   author          Spyridakis Christos"
+    echo "   copyright       Copyright (c) 2019 https://www.github.com/CSpyridakis/SDTSP"
+    echo "   license         MIT License"
+}
+
+#MAIN
+options=":cde:hi:o:q-:"
+while getopts "${options}" opt ; do
+    case $opt in
+        #GNU-style long options support
+        -)
+            case "${OPTARG}" in 
+                check)      CHECK=${TRUE}               ;;  #Check input file
+                debug)      DEBUG=${TRUE}               ;;  #Debug mode on
+                error)      ERRORS_FILE=${OPTARG#*=}    ;;  #File for error messages
+                help)       usage ; exit 0              ;;  #Help menu
+                input)      INPUT_FILE=${OPTARG#*=}     ;;  #Input file
+                ouput)      OUTPUT_FILE=${OPTARG#*=}    ;;  #Output file
+                quiet)      QUIET=${TRUE}               ;;  #Quiet mode
+                \?)         usage ; exit 0              ;;  #Unknown
+                *)          usage ; exit 0              ;;  #Unknown
+            esac
+        ;;
+        
+        c)      CHECK=${TRUE}           ;;  #Check input file
+        d)      DEBUG=${TRUE}           ;;  #Debug mode on
+        e)      ERRORS_FILE=${OPTARG}   ;;  #File for error messages
+        h)      usage ; exit 0          ;;  #Help menu
+        i)      INPUT_FILE=${OPTARG}    ;;  #Input file
+        o)      OUTPUT_FILE=${OPTARG}   ;;  #Output file
+        q)      QUIET=${TRUE}           ;;  #Quiet mode
+        \?)     usage ; exit 0          ;;  #Unknown
+
+        *) echo "HEEOS" ; exit 0   ;; #TODO : arguments needed
+    esac
+done
+
+echo "INPUT_FILE = ${INPUT_FILE}"
+echo "OUTPUT_FILE = ${OUTPUT_FILE}"
+echo "ERRORS_FILE = ${ERRORS_FILE}"
+echo "DEBUG = ${DEBUG}"
+echo "QUIET = ${QUIET}"
+echo "CHECK = ${CHECK}"
