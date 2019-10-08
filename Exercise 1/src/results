@@ -13,23 +13,73 @@
 #
 #
 ##################################################################################################
+
+#
 TRUE=0
 FALSE=1
 
+# INPUT Parameters
 INPUT_FILE=""
 OUTPUT_FILE=""
 ERRORS_FILE=""
+CHECK_FILE=""
 DEBUG=${FALSE}
 QUIET=${FALSE}
-CHECK=${FALSE}
 
-#AKA - Help menu
+
+#
+#   brief: Print in terminal and/or external file the error messages based on user input flags
+#
+error(){
+    # Print error messages in terminal if quiet mode is not enabled
+    if [ -f ${QUIET} ] ; then echo -n $@ ; fi ;
+    # Print error messages in file if it is given
+    if [ "${ERRORS_FILE}" != "" ] ; then echo -n $@ >> ${ERRORS_FILE} ; fi ;
+}
+
+
+
+#
+#   brief: Check if input file exists and if it is valid
+#          (has correct syntax)
+#
+#   param: $1 -> The name of the file (actually its path)
+# 
+#   return: The content of the file and status code:
+#           0 if it is OK,
+#           10 if file is empty,
+#           11 if something is wrong with the format of the file at any point,
+#           12 if file is too big,
+#           13 if there is not read permission,
+#           14 if file does not exist
+#
+check(){
+    if [ ${DEBUG} ] ; then echo -n "\tFunction: check(), --START--" ; fi ;
+
+    local result=""
+    local inputFile=$1
+
+    #File exists, is readable and is not empty
+    if [ -f ${inputFile} ] && [ -r ${inputFile}] && [ -s ${inputFile}]; then
+        echo "File OK" #TODO format check
+
+    elif [ !-f ${inputFile} ] ; then
+        echo "Function: check(), "
+    fi
+
+    echo ${result}
+    return 0
+}
+
+#
+#   brief: Help menu
+#
 usage() {
     echo "Usage: `basename ${0}` [OPTION]... [FILE]..."
     echo "#TODO Description:"
     echo 
     echo "Options:"
-    echo "  -c, --check               check input file"
+    echo "  -c, --check               check input file and exit"
     echo "  -d, --debug               debug mode on"
     echo "  -e, --error               display errors in given file"
     echo "  -h, --help                print this help menu"   
@@ -40,7 +90,10 @@ usage() {
     echo
     echo "Exit status:"
     echo "   0 if OK,"
-    echo "   1 if "
+    echo "   1 if error with given argument at any point,"
+    echo 
+    echo "Examples:"
+    echo #TODO
     echo 
     echo "Implementation:"
     echo "   version         `basename ${0}` 0.0.1"
@@ -50,36 +103,36 @@ usage() {
 }
 
 #MAIN
-options=":cde:hi:o:q-:"
-while getopts "${options}" opt ; do
+while getopts "c:de:hi:o:q-:" opt ; do
     case $opt in
         #GNU-style long options support
         -)
             case "${OPTARG}" in 
-                check)      CHECK=${TRUE}               ;;  #Check input file
+                # check)      CHECK_FILE= ; exit $(check ${CHECK_FILE})               ;;  #Check input file
                 debug)      DEBUG=${TRUE}               ;;  #Debug mode on
                 error)      ERRORS_FILE=${OPTARG#*=}    ;;  #File for error messages
                 help)       usage ; exit 0              ;;  #Help menu
                 input)      INPUT_FILE=${OPTARG#*=}     ;;  #Input file
                 ouput)      OUTPUT_FILE=${OPTARG#*=}    ;;  #Output file
                 quiet)      QUIET=${TRUE}               ;;  #Quiet mode
-                \?)         usage ; exit 0              ;;  #Unknown
-                *)          usage ; exit 0              ;;  #Unknown
+                \?)         echo "ddddddddd" ; exit 0              ;;  #Unknown
+                *)          echo "wwwwwwww" ; exit 0              ;;  #Unknown
             esac
         ;;
         
-        c)      CHECK=${TRUE}           ;;  #Check input file
+        c)      CHECK_FILE=${OPTARG} ; echo ${CHECK_FILE}            ;;  #Check input file
         d)      DEBUG=${TRUE}           ;;  #Debug mode on
         e)      ERRORS_FILE=${OPTARG}   ;;  #File for error messages
         h)      usage ; exit 0          ;;  #Help menu
         i)      INPUT_FILE=${OPTARG}    ;;  #Input file
         o)      OUTPUT_FILE=${OPTARG}   ;;  #Output file
         q)      QUIET=${TRUE}           ;;  #Quiet mode
-        \?)     usage ; exit 0          ;;  #Unknown
-
-        *) echo "HEEOS" ; exit 0   ;; #TODO : arguments needed
+        \?)     echo "Execute: \$ ${0} -h, in order to see properly usage" ; exit 0 ;; #Unknown option
+        *) echo "qqqqqqqqqq" ; exit 0   ;; #TODO : arguments needed
     esac
 done
+
+shilf $((OPTIND-1))
 
 echo "INPUT_FILE = ${INPUT_FILE}"
 echo "OUTPUT_FILE = ${OUTPUT_FILE}"
