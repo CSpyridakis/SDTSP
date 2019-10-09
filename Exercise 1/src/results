@@ -1,42 +1,42 @@
 #!/bin/bash
 ##################################################################################################
-#   results script
+#   results bash script
 #
 #   Author : Spyridakis Christos
 #   Created Date : 7/10/2019
-#   Last Updated : 8/10/2019
+#   Last Updated : 9/10/2019
 #   Email : spyridakischristos@gmail.com
 #
 #   Description : 
-#
-#
+#       Calculate football team ranking, based on each game result.
+#       The input file's format is a collection of game outcomes. Each row looks like this: 
+#       TeamA-TeamB:ScoreA-ScoreB
 #
 #
 ##################################################################################################
 
 #
-TRUE=0
-FALSE=1
+TRUE="0"
+FALSE="1"
 
 # INPUT Parameters
-INPUT_FILE=""
+INPUT_FILES=""
 OUTPUT_FILE=""
 ERRORS_FILE=""
 CHECK_FILE=""
-DEBUG=${FALSE}
-QUIET=${FALSE}
+DEBUG="${FALSE}"
+QUIET="${FALSE}"
 
 
 #
-#   brief: Print in terminal and/or external file the error messages based on user input flags
+#   brief: Print in stderr and/or in external file the error messages based on user input flags
 #
 error(){
-    # Print error messages in terminal if quiet mode is not enabled
-    if [ -f ${QUIET} ] ; then echo -n $@ ; fi ;
+    # Print error messages in stderr if quiet mode is not enabled
+    if [ "${QUIET}" == "${FALSE}" ] ; then echo -e "$@" >&2 ; fi ;
     # Print error messages in file if it is given
-    if [ "${ERRORS_FILE}" != "" ] ; then echo -n $@ >> ${ERRORS_FILE} ; fi ;
+    if [ "${ERRORS_FILE}" != "" ] ; then echo -n "$@" >> ${ERRORS_FILE} ; fi ;
 }
-
 
 
 #
@@ -54,46 +54,61 @@ error(){
 #           14 if file does not exist
 #
 check(){
-    if [ ${DEBUG} ] ; then echo -n "\tFunction: check(), --START--" ; fi ;
+    if [ ${DEBUG} = "${TRUE}" ] ; then echo -e "Function: check(). Check file: ${CHECK_FILE}\t\t---Start" ; fi ;
 
-    local result=""
+    local result=0
     local inputFile=$1
 
     #File exists, is readable and is not empty
-    if [ -f ${inputFile} ] && [ -r ${inputFile}] && [ -s ${inputFile}]; then
-        echo "File OK" #TODO format check
+    if [ -f ${inputFile} ] && [ -r ${inputFile} ] && [ -s ${inputFile} ]; then
+        if [ ${DEBUG} = "${TRUE}" ] ; then echo -e "\t${CHECK_FILE} | File is ok!" ; fi ;
 
-    elif [ !-f ${inputFile} ] ; then
-        echo "Function: check(), "
+    elif [ ! -f ${inputFile} ] ; then
+         error "\t ${CHECK_FILE} | File does not exist"
+         result=14
+    elif [ ! -r ${inputFile} ] ; then
+         error "\t ${CHECK_FILE} | File is not readable"
+         result=13
+    elif [ ! -s ${inputFile} ] ; then
+         error "\t ${CHECK_FILE} | File is empty"  
+         result=10 
     fi
 
-    echo ${result}
-    return 0
+    return ${result}
 }
 
 #
 #   brief: Help menu
 #
 usage() {
-    echo "Usage: `basename ${0}` [OPTION]... [FILE]..."
-    echo "#TODO Description:"
+    echo "Usage: `basename ${0}` [-h] | [-t] | [-c filetocheck] | [-dq] [-e errorfile] [-o outputfile] <inputfiles>..."
+    echo 
+    echo "Calculate football team ranking, based on each game result."
+    echo "The input file's format is a collection of game outcomes. Each row looks like this: "
+    echo "TeamA-TeamB:ScoreA-ScoreB"
     echo 
     echo "Options:"
-    echo "  -c, --check               check input file and exit"
-    echo "  -d, --debug               debug mode on"
-    echo "  -e, --error               display errors in given file"
-    echo "  -h, --help                print this help menu"   
-    echo "  -i, --input               give input file name"
-    echo "  -o, --ouput               give output file name"
-    echo "  -q, --quiet               disable errors reporting"
+    echo "  -c                check input file and exit"
+    echo "  -d                debug mode on"
+    echo "  -e                write stderrors in given file"
+    echo "  -h                print this help menu and exit"   
+    echo "  -o                write output in given file"
+    echo "  -q                disable errors reporting"
+    echo "  -t                run unit tests"
     echo 
     echo
     echo "Exit status:"
     echo "   0 if OK,"
+    echo 
+    echo "- Input options:"
     echo "   1 if error with given argument at any point,"
+    echo "   2 if unknown option,"
+    echo "   3 if unexpected error,"
     echo 
     echo "Examples:"
-    echo #TODO
+    echo "   `basename ${0}` -e errorfile.txt inputfile.txt"
+    echo "   `basename ${0}` -c inputfile.txt      # Check input's files format"
+    echo "   `basename ${0}` -d -e errorsfile.txt -o results.txt june_2019.txt july_2019.txt august_2019.txt"
     echo 
     echo "Implementation:"
     echo "   version         `basename ${0}` 0.0.1"
@@ -103,40 +118,26 @@ usage() {
 }
 
 #MAIN
-while getopts "c:de:hi:o:q-:" opt ; do
+#---------------------------------------------------------------------------------------------
+while getopts ":c:de:ho:q" opt ; do
     case $opt in
-        #GNU-style long options support
-        -)
-            case "${OPTARG}" in 
-                # check)      CHECK_FILE= ; exit $(check ${CHECK_FILE})               ;;  #Check input file
-                debug)      DEBUG=${TRUE}               ;;  #Debug mode on
-                error)      ERRORS_FILE=${OPTARG#*=}    ;;  #File for error messages
-                help)       usage ; exit 0              ;;  #Help menu
-                input)      INPUT_FILE=${OPTARG#*=}     ;;  #Input file
-                ouput)      OUTPUT_FILE=${OPTARG#*=}    ;;  #Output file
-                quiet)      QUIET=${TRUE}               ;;  #Quiet mode
-                \?)         echo "ddddddddd" ; exit 0              ;;  #Unknown
-                *)          echo "wwwwwwww" ; exit 0              ;;  #Unknown
-            esac
-        ;;
-        
-        c)      CHECK_FILE=${OPTARG} ; echo ${CHECK_FILE}            ;;  #Check input file
-        d)      DEBUG=${TRUE}           ;;  #Debug mode on
-        e)      ERRORS_FILE=${OPTARG}   ;;  #File for error messages
-        h)      usage ; exit 0          ;;  #Help menu
-        i)      INPUT_FILE=${OPTARG}    ;;  #Input file
-        o)      OUTPUT_FILE=${OPTARG}   ;;  #Output file
-        q)      QUIET=${TRUE}           ;;  #Quiet mode
-        \?)     echo "Execute: \$ ${0} -h, in order to see properly usage" ; exit 0 ;; #Unknown option
-        *) echo "qqqqqqqqqq" ; exit 0   ;; #TODO : arguments needed
+        c)      CHECK_FILE="${OPTARG}" ; DEBUG=${TRUE} ; check ${CHECK_FILE}  ; exit $? ;;  
+        d)      DEBUG=${TRUE}                                                           ;;  
+        e)      ERRORS_FILE="${OPTARG}"                                                 ;;  
+        h)      usage ; exit 0                                                          ;;  
+        o)      OUTPUT_FILE="${OPTARG}"                                                 ;;  
+        q)      QUIET=${TRUE}                                                           ;;  
+        t)      tests                                          ;    exit $?             ;;  
+        :)      error "Missing argument for -$OPTARG option!\nExecute: \$ ${0} -h, in order to see properly usage" ; exit 1  ;;
+        \?)     error "Invalid option: -$OPTARG\nExecute: \$ ${0} -h, in order to see properly usage"              ; exit 2  ;; 
     esac
 done
 
-shilf $((OPTIND-1))
+shift $(( OPTIND - 1 ))
 
-echo "INPUT_FILE = ${INPUT_FILE}"
-echo "OUTPUT_FILE = ${OUTPUT_FILE}"
-echo "ERRORS_FILE = ${ERRORS_FILE}"
-echo "DEBUG = ${DEBUG}"
-echo "QUIET = ${QUIET}"
-echo "CHECK = ${CHECK}"
+if [ ${DEBUG} ] ; then
+    echo "-INPUT_FILES = ${INPUT_FILES}"
+    echo "-OUTPUT_FILE = ${OUTPUT_FILE}"
+    echo "-ERRORS_FILE = ${ERRORS_FILE}"
+    echo "-QUIET = ${QUIET}"
+fi
