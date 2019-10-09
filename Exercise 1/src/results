@@ -1,5 +1,6 @@
 #!/bin/bash
 ##################################################################################################
+#
 #   results bash script
 #
 #   Author : Spyridakis Christos
@@ -12,11 +13,12 @@
 #       The input file's format is a collection of game outcomes. Each row looks like this: 
 #       TeamA-TeamB:ScoreA-ScoreB
 #
-#
 ##################################################################################################
+
 
 TRUE="0"
 FALSE="1"
+
 
 # INPUT Parameters
 INPUT_FILES="" # TODO 
@@ -27,6 +29,20 @@ DEBUG="${FALSE}"
 QUIET="${FALSE}"
 CHECK="${FALSE}"
 
+# ---------------------------------------------------------------------------------------------
+#   brief: Make sure that input arguments are ok
+#
+debug(){
+    if [ ${DEBUG} = "${TRUE}" ] ; then
+        echo -e ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+        echo "-> INPUT_FILES = ${INPUT_FILES}"
+        echo "-> OUTPUT_FILE = ${OUTPUT_FILE}"
+        echo "-> ERRORS_FILE = ${ERRORS_FILE}"
+        echo "-> QUIET = ${QUIET}"
+        echo -e "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n"
+    fi
+}
+
 
 # ---------------------------------------------------------------------------------------------
 #   brief: Print in stderr and/or in external file the error messages based on user input flags
@@ -35,7 +51,7 @@ error(){
     # Print error messages in stderr if quiet mode is not enabled
     if [ "${QUIET}" == "${FALSE}" ] ; then echo -e "$@" >&2 ; fi ;
     # Print error messages in file if it is given
-    if [ "${ERRORS_FILE}" != "" ] ; then echo -n "$@" >> ${ERRORS_FILE} ; fi ;
+    if [ "${ERRORS_FILE}" != "" ] ; then echo -e "$@" >> ${ERRORS_FILE} ; fi ;
 }
 
 
@@ -54,6 +70,7 @@ error(){
 #           14 if file does not exist
 #
 check(){
+    if [ "${ERRORS_FILE}" != "" ] ; then echo -n "" > "${ERRORS_FILE}" ; fi ;
     if [ ${DEBUG} = "${TRUE}" ] ; then echo -e "Function: check(). Check file: ${CHECK_FILE}\t\t---START" ; fi ;
 
     local result=3
@@ -72,12 +89,10 @@ check(){
 
         if [ ${DEBUG} = "${TRUE}" ] ; then 
             echo -e "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-            echo -e "~~~originalLines | (Num of lines: `echo -e "${originalLines}" | wc -l` )"
-            echo -e "${originalLines}"
-            echo -e "----------\n"
-            echo -e "~~~goodLines | (Num of lines: `echo -e "${goodLines}" | wc -l` )"
-            echo -e "${goodLines}"
-            echo -e "----------"
+            echo -e "~originalLines | (Num of lines: `echo -e "${originalLines}" | wc -l` )"
+            echo -e "${originalLines}\n---\n"
+            echo -e "~goodLines | (Num of lines: `echo -e "${goodLines}" | wc -l` )"
+            echo -e "${goodLines}\n---"
             echo -e "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
         fi 
         
@@ -105,6 +120,8 @@ check(){
     if [ ${DEBUG} = "${TRUE}" ] ; then echo -e "\nFunction: check(). Check file: ${CHECK_FILE}\t\t---END" ; fi ;
     return ${result}
 }
+
+
 
 # ---------------------------------------------------------------------------------------------
 #   brief: Help menu
@@ -173,9 +190,4 @@ done
 
 shift $(( OPTIND - 1 ))
 
-if [ ${DEBUG} ] ; then
-    echo "-> INPUT_FILES = ${INPUT_FILES}"
-    echo "-> OUTPUT_FILE = ${OUTPUT_FILE}"
-    echo "-> ERRORS_FILE = ${ERRORS_FILE}"
-    echo "-> QUIET = ${QUIET}"
-fi
+
