@@ -18,16 +18,18 @@
 
 TRUE="0"
 FALSE="1"
+TMP_FILE="tmpfile.txt"
 
 
 # INPUT Parameters
 INPUT_FILES="" # TODO 
-OUTPUT_FILE=""
-ERRORS_FILE=""
-CHECK_FILE=""
+OUTPUT_FILE=
+ERRORS_FILE=
+CHECK_FILE=
 DEBUG="${FALSE}"
 QUIET="${FALSE}"
 CHECK="${FALSE}"
+
 
 # ---------------------------------------------------------------------------------------------
 #   brief: Make sure that input arguments are ok
@@ -49,9 +51,9 @@ debug(){
 #
 error(){
     # Print error messages in stderr if quiet mode is not enabled
-    if [ "${QUIET}" == "${FALSE}" ] ; then echo -e "$@" >&2 ; fi ;
+    if [ ${QUIET} == "${FALSE}" ] ; then echo -e "$@" >&2 ; fi ;
     # Print error messages in file if it is given
-    if [ "${ERRORS_FILE}" != "" ] ; then echo -e "$@" >> ${ERRORS_FILE} ; fi ;
+    if [ ! -z ${ERRORS_FILE} ] ; then echo -e "$@" >> ${ERRORS_FILE} ; fi ;
 }
 
 
@@ -70,7 +72,7 @@ error(){
 #           14 if file does not exist
 #
 check(){
-    if [ "${ERRORS_FILE}" != "" ] ; then echo -n "" > "${ERRORS_FILE}" ; fi ;
+    if [ ! -z ${ERRORS_FILE} ] ; then echo -n "" > "${ERRORS_FILE}" ; fi ;
     if [ ${DEBUG} = "${TRUE}" ] ; then echo -e "Function: check(). Check file: ${CHECK_FILE}\t\t---START" ; fi ;
 
     local result=3
@@ -122,7 +124,6 @@ check(){
 }
 
 
-
 # ---------------------------------------------------------------------------------------------
 #   brief: Help menu
 #
@@ -171,23 +172,58 @@ usage() {
 }
 
 
-
 #---------------------------------------------------------------------------------------------
 # MAIN
 while getopts ":c:de:ho:q" opt ; do
     case $opt in
-        c)      CHECK_FILE="${OPTARG}" ; CHECK="${TRUE}" ; check ${CHECK_FILE} ; exit $?;;  
-        d)      DEBUG=${TRUE}                                                           ;;  
-        e)      ERRORS_FILE="${OPTARG}"                                                 ;;  
-        h)      usage ; exit 0                                                          ;;  
-        o)      OUTPUT_FILE="${OPTARG}"                                                 ;;  
-        q)      QUIET=${TRUE}                                                           ;;  
-        t)      tests                                          ;    exit $?             ;;  
-        :)      error "Missing argument for -$OPTARG option!\nExecute: \$ ${0} -h, in order to see properly usage" ; exit 1  ;;
-        \?)     error "Invalid option: -$OPTARG\nExecute: \$ ${0} -h, in order to see properly usage"              ; exit 2  ;; 
+        c)      CHECK_FILE="${OPTARG}" ; CHECK="${TRUE}" ; check ${CHECK_FILE} ; exit $?    ;;  
+        d)      DEBUG=${TRUE}                                                               ;;  
+        e)      ERRORS_FILE="${OPTARG}"                                                     ;;  
+        h)      usage ; exit 0                                                              ;;  
+        o)      OUTPUT_FILE="${OPTARG}"                                                     ;;  
+        q)      QUIET=${TRUE}                                                               ;;  
+        t)      tests                                          ;    exit $?                 ;;  
+        :)      error "Missing argument for -$OPTARG option!\nExecute: \$ ${0} -h, in order to see properly usage."; exit 1  ;;
+        \?)     error "Invalid option: -$OPTARG\nExecute: \$ ${0} -h, in order to see properly usage."             ; exit 2  ;; 
     esac
 done
+if [ ${DEBUG} = "${TRUE}" ] ; then echo -e "Bash version: ${BASH_VERSION}...\n" ; fi;
+if [ ! -z ${ERRORS_FILE} ] ; then echo -n "" > "${ERRORS_FILE}" ; fi ;
 
-shift $(( OPTIND - 1 ))
+
+#Remaining Arguments
+shift $(($OPTIND - 1))  #Move to the next args
+remainingArgs=$(echo $* | tr -s " " | tr "," " ")
+if [ ${DEBUG} = "${TRUE}" ] ; then echo "Remaining arguments are: |${remainingArgs}|" ; fi;
 
 
+#Check remaining input data if there is not extra flags
+if [ ! -z  "$(echo "${remainingArgs}" | grep -E " \-[a-zA-Z]{1,}")" ] ; then 
+    error "Please place OPTIONS before input files.\nExecute: \$ results -h, in order to see properly usage." 
+    exit 1
+fi
+
+
+debug
+#Check each input file if is ok
+OLDIFS=${IFS}
+IFS=" "
+for file in $(echo "${remainingArgs}"); 
+    echo "${file}"
+    check "${file}"
+    retState=$?
+    if [ ${retState} -ne 0 ] ; then
+        exit ${retState}
+    fi
+done
+IFS=${OLDIFS}
+
+
+#---------------------------------------------------------------------------------------------
+# MAIN PROCESSING
+
+#Create one big tmp file containing all subfiles
+cat "${remainingArgs}" > "${TMP_FILE}"
+check  "${TMP_FILE}"
+
+# rm -f "${TMP_FILE}"
