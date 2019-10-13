@@ -4,12 +4,73 @@
 #
 #   Author : Spyridakis Christos
 #   Created Date : 8/10/2019
-#   Last Updated : 8/10/2019
+#   Last Updated : 14/10/2019
 #   Email : spyridakischristos@gmail.com
 #
-#   Description : 
-#
-#
-#
+#   Description : Calculate Linear Regression parameters that minimize linear regression squared error
+#                 The input file contains two vectors (X and Y). Each row looks like this: X[i]:Y[i]
+#                 Where i the i-th element of each vector, getting started from 0.
 #
 ##################################################################################################
+
+#Number of decimal places for each calculation
+DEC=10
+
+file=$1
+fileNumLines=$(cat ${file} | wc -l)
+cat ${fileNumLines}
+
+# ---------------------------------------------------------------------------------------------
+#   brief: Print in stderr and/or in external file the error messages based on user input flags
+#
+error(){
+    # Print error messages in stderr if quiet mode is not enabled
+    if [ ${QUIET} == "${FALSE}" ] ; then echo -e "$@" >&2 ; fi ;
+    # Print error messages in file if it is given
+    if [ ! -z ${ERRORS_FILE} ] ; then echo -e "$@" >> ${ERRORS_FILE} ; fi ;
+}
+
+# ---------------------------------------------------------------------------------------------
+#   brief:  Take one of the input files and calculate Linear Regression parameters that minimize 
+#           linear regression squared error. 
+#
+#   param: $1 -> The name of the file (actually its path). The file has to be already been checked.
+#
+regr(){
+    
+    #TODO readfile
+    length=
+
+    # Calculate basic sums
+    local declare -a X ; local declare -a Y                                 # Create X and Y arrays
+    local sum_x=0 ; local sum_y=0 ; local sum_xy=0 ; local sum_x2=0         # Init sums
+    for ((i = 0; i <= ((${length} - 1)); i++)) ; do
+        sum_x=$(echo "scale=${DEC}; ${sum_x} + ${X[i]}" | bc)               #sum_x = X[0] + X[1] + X[2] + ... + X[length-1]
+        sum_y=$(echo "scale=${DEC}; ${sum_y} + ${Y[i]}" | bc)               #sum_y = Y[0] + Y[1] + Y[2] + ... + Y[length-1]
+        sum_xy=$(echo "scale=${DEC}; ${sum_xy} + (${X[i]}*${Y[i]})" | bc)   #sum_xy = X[0]*Y[0] + X[1]*Y[1] + X[2]*Y[2] + ... + X[length-1]*Y[length-1]
+        sum_x2=$(echo "scale=${DEC}; ${sum_x2} + (${X[i]}^2)" | bc)         #sum_x2 = X[0]^2 + X[1]^2 + X[2]^2 + ... + X[length-1]^2
+    done
+
+    # Calculate needed variables
+    #                                                                                 ____
+    #         (length*sum_xy) - (sum_x*sum_y)            sum_y - (a*sum_x)            \                       2
+    #   a = ------------------------------------ , b = --------------------  ,  err =  >  (Y[i] - (aX[i] + b))
+    #         (length*sum_x2) - (sum_x*sum_x)                 length                  / 
+    #                                                                                 ----
+    #
+    if [ $(echo "scale=${DEC}; (${length}*${sum_x2})" | bc) -eq $(echo "scale=${DEC}; (${sum_x}*${sum_x})" | bc)] ; then  
+        unset X ; unset Y 
+        error "Divide with zero"
+        return 1
+    fi 
+    local a=$(echo "scale=${DEC}; ( (${length}*${sum_xy}) - (${sum_x}*${sum_y}) )/( (${length}*${sum_x2}) - (${sum_x}*${sum_x}) )" | bc)
+    local b=$(echo "scale=${DEC}; ( ${sum_y} - (${a}*${sum_x}) )/( ${length} )" | bc)
+    local err=0
+    for ((i = 0; i <= ${limit}; i++)) ; do
+        err=$(echo "scale=25; ( ${err} + ( (Y[i] - (a*X[i]+b))^2 ) " | bc)
+    done
+
+    unset X ; unset Y                                                       #Delete entire arrays
+
+    echo "FILE: $1, a=${a} b=${b} c=1 err=${err}"                           #TODO: print decimal places only if needed
+}
