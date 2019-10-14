@@ -15,7 +15,7 @@
 ##################################################################################################
 
 #Auxiliary variables 
-DEC=2               #Number of decimals, for calculations
+DEC=10               #Number of decimals, for calculations
 FALSE=0
 TRUE=1
 
@@ -186,8 +186,13 @@ regr(){
     #Delete each array
     unset X ; unset Y                                                       
 
-    #TODO: convert .2 -> 0.2
-    echo "FILE: $1, a=${a//\.00} b=${b//\.00} c=1 err=${err//\.00}"  #Display decimal places only if necessary
+    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "{RESULTS}" ; echo -e "a:   ${a}\nb:   ${b}\nerr: ${err}\n" ; fi
+
+    #Display decimal places only if necessary and convert .2 or -.2 --> 0.2 and -0.2
+    a_p="$(echo ${a} | awk '{printf "%.2f", $0}')"                  #From DEC places used for calculations, use only 2 of them and begin with zero if value is -.1 or .2 etc...
+    b_p="$(echo ${b} | awk '{printf "%.2f", $0}')"                  #From DEC places used for calculations, use only 2 of them and begin with zero if value is -.1 or .2 etc...
+    err_p="$(echo ${err} | awk '{printf "%.2f", $0}')"              #From DEC places used for calculations, use only 2 of them and begin with zero if value is -.1 or .2 etc...
+    echo "FILE: $1, a=${a_p//\.00} b=${b_p//\.00} c=1 err=${err_p//\.00}" 
     if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "{DEBUG} - Function: regr() <~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ENDED HERE"; fi
     return 0                    
 }
@@ -277,6 +282,8 @@ usage() {
 #
 tests(){
     #TODO
+    # For testes created rows with this regex:
+    # ^[-]?([0-9]{1,5}\.?|[0-9]{0,5}\.[0-9]{1,5}):[-]?([0-9]{1,5}\.?|[0-9]{0,5}\.[0-9]{1,5})$
     return 0
 }
 
