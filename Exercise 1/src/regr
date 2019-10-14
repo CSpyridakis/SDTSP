@@ -4,23 +4,22 @@
 #
 #   Author : Spyridakis Christos
 #   Created Date : 8/10/2019
-#   Last Updated : 14/10/2019
+#   Last Updated : 15/10/2019
 #   Email : spyridakischristos@gmail.com
 #
-#   Description : Calculate Linear Regression parameters that minimize linear regression squared error
-#                 The input file contains two vectors (X and Y). Each row looks like this: X[i]:Y[i]
-#                 Where i the i-th element of each vector, getting started from 0.
+#   Description : Calculate Linear Regression parameters that minimize linear regression squared error.
+#                 The input file contains two vectors (X and Y). Each row looks like this --> X[i]:Y[i]
+#                 Where i the i-th element of each vector, getting started from 0. Each element is
+#                 a floating point number.
 #
 ##################################################################################################
 
-
 #Auxiliary variables 
-DEC=2               #Number of decimal places for each calculation
+DEC=2               #Number of decimals, for calculations
 FALSE=0
 TRUE=1
 
-
-# Based from input
+# Based from user input
 OUTPUT_FILE=
 ERRORS_FILE=
 CHECK_FILE=
@@ -30,7 +29,7 @@ CHECK=${FALSE}
 
 
 # ---------------------------------------------------------------------------------------------
-#   brief: Print in stderr and/or in external file the error messages based on user input flags
+#   brief: Print in stderr and/or in external file the error messages based on user input options
 #
 error(){
     # Print error messages in stderr if quiet mode is not enabled
@@ -56,7 +55,8 @@ error(){
 #           3 for unexpected error
 #
 check(){
-    if [ ! -z ${ERRORS_FILE} ] ; then echo -n "" > "${ERRORS_FILE}" ; fi ;
+    #In case that user wants to display error messages to a file, create it or empty its previous content
+    if [ ${CHECK} -eq ${TRUE} ] && [ ! -z ${ERRORS_FILE} ] ; then echo -n "" > "${ERRORS_FILE}" ; fi ;
 
     local result=3
     local inputFile=$1
@@ -65,11 +65,11 @@ check(){
     if [ -f ${inputFile} ] && [ -r ${inputFile} ] && [ -s ${inputFile} ]; then
         
         #Check if all lines of the file are in the needed format.
-        #Each line must contain this "F:F". Where F is a floating point number.
-        #Acceptable representations for F are: +10 , -3 , 4 , 2. , 290.09 , -.23 , +9.12 , .9 , etc..
-        lineRegex="^[+-]?([0-9]+\.?|[0-9]*\.[0-9]+):[+-]?([0-9]+\.?|[0-9]*\.[0-9]+)$"
-        originalLines=$(cat ${inputFile})
-        goodLines=$(grep -E "${lineRegex}" ${inputFile})
+        #Each line must contain this: "F:F". Where F is a floating point number.
+        #Acceptable representations for F are: -3 , 4 , 2. , 290.09 , -.23 , .9 , etc..
+        lineRegex="^[-]?([0-9]+\.?|[0-9]*\.[0-9]+):[-]?([0-9]+\.?|[0-9]*\.[0-9]+)$"                     #Using regular expression to validate input
+        local originalLines=$(cat ${inputFile})
+        local goodLines=$(grep -E "${lineRegex}" ${inputFile})
 
         # if [ ${DEBUG} -eq ${TRUE} ] ; then 
         #     echo -e "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
@@ -115,38 +115,38 @@ check(){
 #   return: Exit with status code:
 #           0 if it is OK,
 #           1 if divided by zero,
-#           2 for unexpected error,
+#           3 for unexpected error,
 #           K if something is wrong with the file
 #
-#   see: Inline documentation of check function for K values 
+#   see:    Inline documentation of check() function for K values 
 #
 regr(){
-    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "{DEBUG} - Function: regr\t\tSTART FROM HERE ------------------------->"; fi
+    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "{DEBUG} - Function: regr() START FROM HERE ------------------------->"; fi
     check $1
     local ERROR=$?
     
     #Exit function if there is something wrong with this file
     if [ ${ERROR} -ne 0 ] ; then return ${ERROR}; fi
 
-    #Read file vectors
-    length=$(echo -e "$(cat $1)" | wc -l ) #If i use `cat $1 | wc -l` and the last line is not empty, the length is out by one
+    #Read file's X and Y vectors
+    length=$(echo -e "$(cat $1)" | wc -l ) #If i use `cat $1 | wc -l` and the last line is not empty, the length is wrong
     X_vector=$(cat "$1" | cut -d":" -f 1)
     Y_vector=$(cat "$1" | cut -d":" -f 2) 
-
+    
     #Just a DEBUG message, print X and Y vectors from strings
-    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "\n{VECTORS - STRINGS} - length: ${length}" ; echo "$(paste <( echo "X ${X_vector}" | tr " " "\n" ) <( for ((i=0;i<=${length};i++)) ; do echo -e "|" ; done ; ) <( echo -e "Y ${Y_vector}" | tr " " "\n" ) -d " " | column -t)" ; fi
+    # if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "\n{VECTORS - STRINGS} - length: ${length}" ; echo "$(paste <( echo "X ${X_vector}" | tr " " "\n" ) <( for ((i=0;i<=${length};i++)) ; do echo -e "|" ; done ; ) <( echo -e "Y ${Y_vector}" | tr " " "\n" ) -d " " | column -t)" ; fi
 
     # ---------------------------------------------------------------------------------------
     #   Calculate mantatory sums we need, in order to calculate parameters and squared error
     #
     #
-    unset X ; unset Y                                                       #Delete entire arrays, if already exist
+    unset X ; unset Y                                                       #Delete both arrays, if already exist
     # Create X and Y arrays or return 2 if something is wrong
-    declare -a X=(${X_vector}) ; if [ $? -ne 0 ] ; then return 2; fi
-    declare -a Y=(${Y_vector}) ; if [ $? -ne 0 ] ; then return 2; fi
+    declare -a X=(${X_vector}) ; if [ $? -ne 0 ] ; then return 3; fi
+    declare -a Y=(${Y_vector}) ; if [ $? -ne 0 ] ; then return 3; fi
 
-    #Just a DEBUG message, print X and Y vectors from strings
-    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "\n{ARRAYS} - X_length: ${#X[@]} | Y_length: ${#Y[@]}" ; echo "$(paste <( echo "X ${X[@]}" | tr " " "\n" ) <( for ((i=0;i<=${length};i++)) ; do echo -e "|" ; done ; ) <( echo -e "Y ${Y[@]}" | tr " " "\n" ) -d " " | column -t)" ; fi
+    #Just a DEBUG message, print X and Y vectors from Arrays
+    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "\n{VECTORS - ARRAYS} - X_length: ${#X[@]} | Y_length: ${#Y[@]}" ; echo "$(paste <( echo "X ${X[@]}" | tr " " "\n" ) <( for ((i=0;i<=${length};i++)) ; do echo -e "|" ; done ; ) <( echo -e "Y ${Y[@]}" | tr " " "\n" ) -d " " | column -t)" ; fi
 
     local sum_x=0 ; local sum_y=0 ; local sum_xy=0 ; local sum_x2=0         # Init sums
     for ((i = 0; i <= ((${length} - 1)); i++)) ; do
@@ -183,11 +183,12 @@ regr(){
        return 1 
     fi
     
-    #Delete entire arrays
+    #Delete each array
     unset X ; unset Y                                                       
 
-    echo "FILE: $1, a=${a} b=${b} c=1 err=${err}";                      #TODO: print decimal places only if needed  
-    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "{DEBUG} - Function: regr\t\t<~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ENDED HERE"; fi
+    #TODO: convert .2 -> 0.2
+    echo "FILE: $1, a=${a//\.00} b=${b//\.00} c=1 err=${err//\.00}"  #Display decimal places only if necessary
+    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "{DEBUG} - Function: regr() <~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ENDED HERE"; fi
     return 0                    
 }
 
@@ -195,8 +196,9 @@ regr(){
 # -----------------------------------------------------------------------------------------------------------------------------------------------------
 #   brief: Calculate and print parameters and squared error for each file (or print error message)
 #
+#   param: $1 -> The name of the file (actually its path).
+#
 calc_and_print_results(){
-    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "{DEBUG} - Function: calc_and_print_results\t\tSTART FROM HERE ------------------------->"; fi
     regr $1
     local ERROR=$?
 
@@ -218,7 +220,6 @@ calc_and_print_results(){
     else 
         echo "FILE: $1, unexpected error"
     fi   
-    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "{DEBUG} - Function: calc_and_print_results\t\t<~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ENDED HERE"; fi
 }
 
 
@@ -229,18 +230,18 @@ usage() {
     echo "Usage: `basename ${0}` [-h] | [-t] | [-c filetocheck] | [-dq] [-e errorfile] [-o outputfile] <inputfiles>..."
     echo 
     echo "Calculate Linear Regression parameters that minimize linear regression squared error."
-    echo "The input file's format is a collection of two vectors' (X and Y) elements. Each row looks like this: "
+    echo "The input file's format is a collection of elements of two vectors' (X and Y). Each row looks like this: "
     echo "Xi:Yi"
     echo "Where Xi and Yi are floating poing numbers."
     echo 
     echo "Options:"
-    echo "  -c                check an input file and exit"
+    echo "  -c                check an input file if is valid and exit"
     echo "  -d                debug mode on"
     echo "  -e                write stderrors in given file"
     echo "  -h                print this help menu and exit"   
-    echo "  -o                write output in given file"
+    echo "  -o                write output in given file #TODO -is not working at the moment"
     echo "  -q                enable errors reporting"
-    echo "  -t                run unit tests"
+    echo "  -t                run unit tests #TODO -is not working at the moment"
     echo 
     echo
     echo "Exit status:"
@@ -260,14 +261,23 @@ usage() {
     echo 
     echo "Examples:"
     echo "   `basename ${0}` -e errorfile.txt inputfile.txt"
-    echo "   `basename ${0}` -c inputfile.txt      # Check input's files format"
-    echo "   `basename ${0}` -d -e errorsfile.txt -o results.txt june_2019.txt july_2019.txt august_2019.txt"
+    echo "   `basename ${0}` -c inputfile.txt      # Check if input file is acceptable"
+    echo "   `basename ${0}` -d -e errorsfile.txt -o results.txt input1.txt input2.txt input3.txt"
     echo 
     echo "Implementation:"
     echo "   version         `basename ${0}` 0.0.1"
     echo "   author          Spyridakis Christos"
     echo "   copyright       Copyright (c) 2019 https://www.github.com/CSpyridakis/SDTSP"
     echo "   license         MIT License"
+}
+
+
+# -----------------------------------------------------------------------------------------------------------------------------------------------------
+#   brief: Just run my tests
+#
+tests(){
+    #TODO
+    return 0
 }
 
 
@@ -292,7 +302,7 @@ if [ ! -z ${ERRORS_FILE} ] ; then echo -n "" > "${ERRORS_FILE}" ; fi ;
 
 #Remaining Arguments
 shift $(($OPTIND - 1))  #Move to the next args
-remainingArgs=$(echo $* | tr -s " " | tr "," " ")
+remainingArgs=$(echo $* | tr -s " " | tr "," " ") #Squeeze extra spaces and tranlate every comma to space. Remember valid input is also this: file1,file2,file3... 
 if [ ${DEBUG} -eq ${TRUE} ] ; then echo "Remaining arguments are: |${remainingArgs}|" ; fi;
 
 #Check remaining input data if there is not extra flags
@@ -305,5 +315,5 @@ fi
 #Calculate and print parameter and squared error for each file
 for inFile in ${remainingArgs} ; do
     calc_and_print_results ${inFile}
-    if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "\n\n\n________________________________________________________________________________________________\n\n\n" ; fi;
+    if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "\n________________________________________________________________________________________________\n" ; fi;
 done
