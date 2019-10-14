@@ -20,12 +20,12 @@ FALSE=0
 TRUE=1
 
 
-# Based from input options
+# Based from input
 OUTPUT_FILE=
 ERRORS_FILE=
 CHECK_FILE=
-DEBUG=${TRUE}
-QUIET=${FALSE}
+DEBUG=${FALSE}
+QUIET=${TRUE}
 CHECK=${FALSE}
 
 
@@ -34,7 +34,7 @@ CHECK=${FALSE}
 #
 error(){
     # Print error messages in stderr if quiet mode is not enabled
-    if [ ${QUIET} -eq ${FALSE} ] ; then echo -e "$@" >&2 ; fi ;
+    if [ ${CHECK} -eq ${TRUE} ] || [ ${QUIET} -eq ${FALSE} ] || [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "$@" >&2 ; fi ;
     # Print error messages in file if it is given
     if [ ! -z ${ERRORS_FILE} ] ; then echo -e "$@" >> ${ERRORS_FILE} ; fi ;
 }
@@ -53,18 +53,16 @@ error(){
 #           12 if file is too big,
 #           13 if there is not read permission,
 #           14 if file does not exist
-#           2 for unexpected error
+#           3 for unexpected error
 #
 check(){
     if [ ! -z ${ERRORS_FILE} ] ; then echo -n "" > "${ERRORS_FILE}" ; fi ;
-    if [ ${DEBUG} -eq ${TRUE} ] ; then echo -n "{DEBUG} - Function: check(). Check file: ${CHECK_FILE} --> " ; fi ;
 
-    local result=2
+    local result=3
     local inputFile=$1
 
     # File exists, is readable and is not empty BUT i don't know yet if it is acceptable
     if [ -f ${inputFile} ] && [ -r ${inputFile} ] && [ -s ${inputFile} ]; then
-        if [ ${DEBUG} -eq ${TRUE} ] ; then echo -n "File exists, is not empty and is readable. " ; fi ;
         
         #Check if all lines of the file are in the needed format.
         #Each line must contain this "F:F". Where F is a floating point number.
@@ -84,24 +82,24 @@ check(){
         
         #Check if all lines of the file are valid
         if [ "${originalLines}" == "${goodLines}" ] ; then
-            if [ ${CHECK} -eq ${TRUE} ] ; then echo -e "Also file is valid!\n" ; fi ; 
+            if [ ${CHECK} -eq ${TRUE} ] || [ ${DEBUG} -eq ${TRUE} ]; then echo -e "{DEBUG} - Function: check(). Check file: ${inputFile} --> File is valid!" ; fi ; 
             result=0
         else
-            error "But file does not have the needed format!"
+            error "{DEBUG} - Function: check(). Check file: ${inputFile} --> File exists, is not empty and is readable. But file does not have the needed format!"
             result=11
         fi 
     elif [ ! -f ${inputFile} ] ; then
-        error "File does not exist"
+        error "{DEBUG} - Function: check(). Check file: ${inputFile} --> File does not exist"
         result=14
     elif [ ! -r ${inputFile} ] ; then
-        error "File is not readable"
+        error "{DEBUG} - Function: check(). Check file: ${inputFile} --> File is not readable"
         result=13
     elif [ ! -s ${inputFile} ] ; then
-        error "File is empty"  
+        error "{DEBUG} - Function: check(). Check file: ${inputFile} --> File is empty"  
         result=10 
     else
-        error "Unexpected error"  
-        result=2
+        error "{DEBUG} - Function: check(). Check file: ${inputFile} --> Unexpected error"  
+        result=3
     fi
 
     return ${result}
@@ -195,6 +193,7 @@ regr(){
 
 
 # -----------------------------------------------------------------------------------------------------------------------------------------------------
+#   brief: Calculate and print parameters and squared error for each file (or print error message)
 #
 calc_and_print_results(){
     if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "{DEBUG} - Function: calc_and_print_results\t\tSTART FROM HERE ------------------------->"; fi
@@ -224,5 +223,87 @@ calc_and_print_results(){
 
 
 # -----------------------------------------------------------------------------------------------------------------------------------------------------
+#   brief: Help menu
+#
+usage() {
+    echo "Usage: `basename ${0}` [-h] | [-t] | [-c filetocheck] | [-dq] [-e errorfile] [-o outputfile] <inputfiles>..."
+    echo 
+    echo "Calculate Linear Regression parameters that minimize linear regression squared error."
+    echo "The input file's format is a collection of two vectors' (X and Y) elements. Each row looks like this: "
+    echo "Xi:Yi"
+    echo "Where Xi and Yi are floating poing numbers."
+    echo 
+    echo "Options:"
+    echo "  -c                check an input file and exit"
+    echo "  -d                debug mode on"
+    echo "  -e                write stderrors in given file"
+    echo "  -h                print this help menu and exit"   
+    echo "  -o                write output in given file"
+    echo "  -q                enable errors reporting"
+    echo "  -t                run unit tests"
+    echo 
+    echo
+    echo "Exit status:"
+    echo "   0 if OK,"
+    echo 
+    echo "- Input options:"
+    echo "   1 if error with given argument at any point,"
+    echo "   2 if unknown option,"
+    echo "   3 for unexpected error,"
+    echo 
+    echo "- Input file errors:"
+    echo "   10 if file is empty,"
+    echo "   11 if something is wrong with the format of the file at any point,"
+    echo "   12 if file is too big,"
+    echo "   13 if there is not read permission,"
+    echo "   14 if file does not exist"
+    echo 
+    echo "Examples:"
+    echo "   `basename ${0}` -e errorfile.txt inputfile.txt"
+    echo "   `basename ${0}` -c inputfile.txt      # Check input's files format"
+    echo "   `basename ${0}` -d -e errorsfile.txt -o results.txt june_2019.txt july_2019.txt august_2019.txt"
+    echo 
+    echo "Implementation:"
+    echo "   version         `basename ${0}` 0.0.1"
+    echo "   author          Spyridakis Christos"
+    echo "   copyright       Copyright (c) 2019 https://www.github.com/CSpyridakis/SDTSP"
+    echo "   license         MIT License"
+}
+
+
+# -----------------------------------------------------------------------------------------------------------------------------------------------------
 # MAIN
-calc_and_print_results "$1"
+# Take input options and arguments
+while getopts ":c:de:ho:q" opt ; do
+    case $opt in
+        c)      CHECK_FILE="${OPTARG}" ; CHECK=${TRUE} ; check ${CHECK_FILE} ; exit $?      ;;  
+        d)      DEBUG=${TRUE}                                                               ;;  
+        e)      ERRORS_FILE="${OPTARG}"                                                     ;;  
+        h)      usage ; exit 0                                                              ;;  
+        o)      OUTPUT_FILE="${OPTARG}"                                                     ;;  
+        q)      QUIET=${FALSE}                                                              ;;  
+        t)      tests                                          ;    exit $?                 ;;  
+        :)      QUIET=${FALSE} ; error "Missing argument for -$OPTARG option! Execute: \$ ${0} -h, in order to see properly usage." ; exit 1  ;;
+        \?)     QUIET=${FALSE} ; error "Invalid option: -$OPTARG Execute: \$ ${0} -h, in order to see properly usage."              ; exit 2  ;; 
+    esac
+done
+if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "Bash version: ${BASH_VERSION}...\n" ; fi;
+if [ ! -z ${ERRORS_FILE} ] ; then echo -n "" > "${ERRORS_FILE}" ; fi ;
+
+#Remaining Arguments
+shift $(($OPTIND - 1))  #Move to the next args
+remainingArgs=$(echo $* | tr -s " " | tr "," " ")
+if [ ${DEBUG} -eq ${TRUE} ] ; then echo "Remaining arguments are: |${remainingArgs}|" ; fi;
+
+#Check remaining input data if there is not extra flags
+if [ ! -z  "$(echo "${remainingArgs}" | grep -E " \-[a-zA-Z]{1,}")" ] ; then 
+    QUIET=${FALSE}
+    error "Please place OPTIONS before input files. Execute: \$ results -h, in order to see properly usage." 
+    exit 1
+fi
+
+#Calculate and print parameter and squared error for each file
+for inFile in ${remainingArgs} ; do
+    calc_and_print_results ${inFile}
+    if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "\n\n\n________________________________________________________________________________________________\n\n\n" ; fi;
+done
