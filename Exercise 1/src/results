@@ -63,7 +63,7 @@ error(){
 #
 #   param: $1 -> The name of the file (actually its path)
 # 
-#   return: The content of the file and status code:
+#   return: Exit with status code:
 #           0 if it is OK,
 #           10 if file is empty,
 #           11 if something is wrong with the format of the file at any point,

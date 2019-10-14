@@ -13,36 +13,143 @@
 #
 ##################################################################################################
 
-#Number of decimal places for each calculation
-DEC=10
 
-file=$1
-fileNumLines=$(cat ${file} | wc -l)
-cat ${fileNumLines}
+#Auxiliary variables 
+DEC=2               #Number of decimal places for each calculation
+FALSE=0
+TRUE=1
+
+
+# Based from input options
+OUTPUT_FILE=
+ERRORS_FILE=
+CHECK_FILE=
+DEBUG=${TRUE}
+QUIET=${FALSE}
+CHECK=${FALSE}
+
 
 # ---------------------------------------------------------------------------------------------
 #   brief: Print in stderr and/or in external file the error messages based on user input flags
 #
 error(){
     # Print error messages in stderr if quiet mode is not enabled
-    if [ ${QUIET} == "${FALSE}" ] ; then echo -e "$@" >&2 ; fi ;
+    if [ ${QUIET} -eq ${FALSE} ] ; then echo -e "$@" >&2 ; fi ;
     # Print error messages in file if it is given
     if [ ! -z ${ERRORS_FILE} ] ; then echo -e "$@" >> ${ERRORS_FILE} ; fi ;
 }
 
+
 # ---------------------------------------------------------------------------------------------
+#   brief: Check if input file exists and if it is valid
+#          (has correct syntax)
+#
+#   param: $1 -> The name of the file (actually its path)
+# 
+#   return: Exit with status code:
+#           0 if it is OK,
+#           10 if file is empty,
+#           11 if something is wrong with the format of the file at any point,
+#           12 if file is too big,
+#           13 if there is not read permission,
+#           14 if file does not exist
+#           2 for unexpected error
+#
+check(){
+    if [ ! -z ${ERRORS_FILE} ] ; then echo -n "" > "${ERRORS_FILE}" ; fi ;
+    if [ ${DEBUG} -eq ${TRUE} ] ; then echo -n "{DEBUG} - Function: check(). Check file: ${CHECK_FILE} --> " ; fi ;
+
+    local result=2
+    local inputFile=$1
+
+    # File exists, is readable and is not empty BUT i don't know yet if it is acceptable
+    if [ -f ${inputFile} ] && [ -r ${inputFile} ] && [ -s ${inputFile} ]; then
+        if [ ${DEBUG} -eq ${TRUE} ] ; then echo -n "File exists, is not empty and is readable. " ; fi ;
+        
+        #Check if all lines of the file are in the needed format.
+        #Each line must contain this "F:F". Where F is a floating point number.
+        #Acceptable representations for F are: +10 , -3 , 4 , 2. , 290.09 , -.23 , +9.12 , .9 , etc..
+        lineRegex="^[+-]?([0-9]+\.?|[0-9]*\.[0-9]+):[+-]?([0-9]+\.?|[0-9]*\.[0-9]+)$"
+        originalLines=$(cat ${inputFile})
+        goodLines=$(grep -E "${lineRegex}" ${inputFile})
+
+        # if [ ${DEBUG} -eq ${TRUE} ] ; then 
+        #     echo -e "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+        #     echo -e "~originalLines | (Num of lines: `echo -e "${originalLines}" | wc -l` )"
+        #     echo -e "${originalLines}\n---\n"
+        #     echo -e "~goodLines | (Num of lines: `echo -e "${goodLines}" | wc -l` )"
+        #     echo -e "${goodLines}\n---"
+        #     echo -e "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+        # fi 
+        
+        #Check if all lines of the file are valid
+        if [ "${originalLines}" == "${goodLines}" ] ; then
+            if [ ${CHECK} -eq ${TRUE} ] ; then echo -e "Also file is valid!\n" ; fi ; 
+            result=0
+        else
+            error "But file does not have the needed format!"
+            result=11
+        fi 
+    elif [ ! -f ${inputFile} ] ; then
+        error "File does not exist"
+        result=14
+    elif [ ! -r ${inputFile} ] ; then
+        error "File is not readable"
+        result=13
+    elif [ ! -s ${inputFile} ] ; then
+        error "File is empty"  
+        result=10 
+    else
+        error "Unexpected error"  
+        result=2
+    fi
+
+    return ${result}
+}
+
+
+# -----------------------------------------------------------------------------------------------------------------------------------------------------
 #   brief:  Take one of the input files and calculate Linear Regression parameters that minimize 
 #           linear regression squared error. 
 #
-#   param: $1 -> The name of the file (actually its path). The file has to be already been checked.
+#   param: $1 -> The name of the file (actually its path).
+#
+#   return: Exit with status code:
+#           0 if it is OK,
+#           1 if divided by zero,
+#           2 for unexpected error,
+#           K if something is wrong with the file
+#
+#   see: Inline documentation of check function for K values 
 #
 regr(){
+    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "{DEBUG} - Function: regr\t\tSTART FROM HERE ------------------------->"; fi
+    check $1
+    local ERROR=$?
     
-    #TODO readfile
-    length=
+    #Exit function if there is something wrong with this file
+    if [ ${ERROR} -ne 0 ] ; then return ${ERROR}; fi
 
-    # Calculate basic sums
-    local declare -a X ; local declare -a Y                                 # Create X and Y arrays
+    #Read file vectors
+    length=$(echo -e "$(cat $1)" | wc -l ) #If i use `cat $1 | wc -l` and the last line is not empty, the length is out by one
+    X_vector=$(cat "$1" | cut -d":" -f 1)
+    Y_vector=$(cat "$1" | cut -d":" -f 2) 
+
+    #Just a DEBUG message, print X and Y vectors from strings
+    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "\n{VECTORS - STRINGS} - length: ${length}" ; echo "$(paste <( echo "X ${X_vector}" | tr " " "\n" ) <( for ((i=0;i<=${length};i++)) ; do echo -e "|" ; done ; ) <( echo -e "Y ${Y_vector}" | tr " " "\n" ) -d " " | column -t)" ; fi
+
+    # ---------------------------------------------------------------------------------------
+    #   Calculate mantatory sums we need, in order to calculate parameters and squared error
+    #
+    #
+    unset X ; unset Y                                                       #Delete entire arrays, if already exist
+    # Create X and Y arrays or return 2 if something is wrong
+    declare -a X=(${X_vector}) ; if [ $? -ne 0 ] ; then return 2; fi
+    declare -a Y=(${Y_vector}) ; if [ $? -ne 0 ] ; then return 2; fi
+
+    #Just a DEBUG message, print X and Y vectors from strings
+    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "\n{ARRAYS} - X_length: ${#X[@]} | Y_length: ${#Y[@]}" ; echo "$(paste <( echo "X ${X[@]}" | tr " " "\n" ) <( for ((i=0;i<=${length};i++)) ; do echo -e "|" ; done ; ) <( echo -e "Y ${Y[@]}" | tr " " "\n" ) -d " " | column -t)" ; fi
+
     local sum_x=0 ; local sum_y=0 ; local sum_xy=0 ; local sum_x2=0         # Init sums
     for ((i = 0; i <= ((${length} - 1)); i++)) ; do
         sum_x=$(echo "scale=${DEC}; ${sum_x} + ${X[i]}" | bc)               #sum_x = X[0] + X[1] + X[2] + ... + X[length-1]
@@ -51,26 +158,71 @@ regr(){
         sum_x2=$(echo "scale=${DEC}; ${sum_x2} + (${X[i]}^2)" | bc)         #sum_x2 = X[0]^2 + X[1]^2 + X[2]^2 + ... + X[length-1]^2
     done
 
-    # Calculate needed variables
+    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "\n{SUMS}" ; echo -e "sum_x : ${sum_x}\nsum_y : ${sum_y}\nsum_xy: ${sum_xy}\nsum_x2: ${sum_x2}" ; fi
+
+    # ---------------------------------------------------------------------------------------
+    #                  Calculate Linear Regression parameters and squared error
+    #
     #                                                                                 ____
     #         (length*sum_xy) - (sum_x*sum_y)            sum_y - (a*sum_x)            \                       2
     #   a = ------------------------------------ , b = --------------------  ,  err =  >  (Y[i] - (aX[i] + b))
     #         (length*sum_x2) - (sum_x*sum_x)                 length                  / 
     #                                                                                 ----
     #
-    if [ $(echo "scale=${DEC}; (${length}*${sum_x2})" | bc) -eq $(echo "scale=${DEC}; (${sum_x}*${sum_x})" | bc)] ; then  
-        unset X ; unset Y 
-        error "Divide with zero"
-        return 1
-    fi 
-    local a=$(echo "scale=${DEC}; ( (${length}*${sum_xy}) - (${sum_x}*${sum_y}) )/( (${length}*${sum_x2}) - (${sum_x}*${sum_x}) )" | bc)
-    local b=$(echo "scale=${DEC}; ( ${sum_y} - (${a}*${sum_x}) )/( ${length} )" | bc)
-    local err=0
-    for ((i = 0; i <= ${limit}; i++)) ; do
-        err=$(echo "scale=25; ( ${err} + ( (Y[i] - (a*X[i]+b))^2 ) " | bc)
-    done
+    local a_dividend=$(echo "scale=${DEC}; ( (${length}*${sum_xy}) - (${sum_x}*${sum_y}) )" | bc)
+    local a_divisor=$(echo "scale=${DEC}; ( (${length}*${sum_x2}) - (${sum_x}*${sum_x}) )" | bc)
+    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "\n{DIVISION}" ; echo -e "a_dividend: ${a_dividend}\na_divisor : ${a_divisor}\n" ; fi
 
-    unset X ; unset Y                                                       #Delete entire arrays
+    #Check if divisor for calculation of 'a' is zero. dividend/0 is not acceptable
+    if [ "$(echo "${a_divisor} == 0" | bc -l)" -ne "1" ] ; then 
+        local a=$(echo "scale=${DEC}; ( ${a_dividend}/${a_divisor} )" | bc)
+        local b=$(echo "scale=${DEC}; ( ${sum_y} - (${a}*${sum_x}) )/( ${length} )" | bc)
+        local err=0
+        for ((i = 0; i <= ((${length} - 1)); i++)) ; do
+            err=$(echo "scale=${DEC}; ${err} + ( ${Y[i]} - (${a}*${X[i]} + ${b}) )^2 " | bc)
+        done
+    else 
+       return 1 
+    fi
+    
+    #Delete entire arrays
+    unset X ; unset Y                                                       
 
-    echo "FILE: $1, a=${a} b=${b} c=1 err=${err}"                           #TODO: print decimal places only if needed
+    echo "FILE: $1, a=${a} b=${b} c=1 err=${err}";                      #TODO: print decimal places only if needed  
+    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "{DEBUG} - Function: regr\t\t<~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ENDED HERE"; fi
+    return 0                    
 }
+
+
+# -----------------------------------------------------------------------------------------------------------------------------------------------------
+#
+calc_and_print_results(){
+    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "{DEBUG} - Function: calc_and_print_results\t\tSTART FROM HERE ------------------------->"; fi
+    regr $1
+    local ERROR=$?
+
+    #Print results (Take into consideration some error cases)
+    if [ ${ERROR} -eq 0 ] ; then 
+        true
+    elif [ ${ERROR} -eq 10 ] ; then 
+        echo "FILE: $1, file is empty"
+    elif [ ${ERROR} -eq 11 ] ; then 
+        echo "FILE: $1, something is wrong with the format of the file at any point"
+    elif [ ${ERROR} -eq 12 ] ; then 
+        echo "FILE: $1, file is too big"
+    elif [ ${ERROR} -eq 13 ] ; then 
+        echo "FILE: $1, there is not read permission"
+    elif [ ${ERROR} -eq 14 ] ; then 
+        echo "FILE: $1, file does not exist"
+    elif [ ${ERROR} -eq 1 ] ; then 
+        echo "FILE: $1, divide by zero in the calculation of parameter a"
+    else 
+        echo "FILE: $1, unexpected error"
+    fi   
+    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "{DEBUG} - Function: calc_and_print_results\t\t<~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ENDED HERE"; fi
+}
+
+
+# -----------------------------------------------------------------------------------------------------------------------------------------------------
+# MAIN
+calc_and_print_results "$1"
