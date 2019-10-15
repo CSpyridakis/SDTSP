@@ -7,17 +7,21 @@
 #   Last Updated : 15/10/2019
 #   Email : spyridakischristos@gmail.com
 #
-#   Description : Calculate Linear Regression parameters that minimize linear regression squared error.
-#                 The input file contains two vectors (X and Y). Each row looks like this --> X[i]:Y[i]
-#                 Where i the i-th element of each vector, getting started from 0. Each element is
+#   Description : Calculate Linear Regression coefficients that minimize linear regression standard 
+#                 squared error. The input file contains two vectors (X and Y). Each row looks like 
+#                 this--> Xi:Yi
+# 
+#                 Where Xi/Yi is the i-th element of each vector, getting started from 0. Xi/Yi is
 #                 a floating point number.
 #
 ##################################################################################################
 
-#Auxiliary variables 
-DEC=10               #Number of decimals, for calculations
+# Auxiliary variables 
+DEC=10               #Number of decimals of precision for calculations
 FALSE=0
 TRUE=1
+# Use regular expression to validate input file
+LINEREGEX="^[-]?([0-9]+[\.,]?|[0-9]*[\.,][0-9]+):[-]?([0-9]+[\.,]?|[0-9]*[\.,][0-9]+)$"        
 
 # Based from user input
 OUTPUT_FILE=
@@ -40,7 +44,7 @@ error(){
 
 
 # ---------------------------------------------------------------------------------------------
-#   brief: Check if input file exists and if it is valid
+#   brief: Check if input file exists and if is valid
 #          (has correct syntax)
 #
 #   param: $1 -> The name of the file (actually its path)
@@ -66,18 +70,17 @@ check(){
         
         #Check if all lines of the file are in the needed format.
         #Each line must contain this: "F:F". Where F is a floating point number.
-        #Acceptable representations for F are: -3 , 4 , 2. , 290.09 , -.23 , .9 , etc..
-        lineRegex="^[-]?([0-9]+\.?|[0-9]*\.[0-9]+):[-]?([0-9]+\.?|[0-9]*\.[0-9]+)$"                     #Using regular expression to validate input
+        #Acceptable representations for F are: -3 , 4 , 2. , -41. , 290.09 , -234.1 , -.23 , .9 , etc..
         local originalLines=$(cat ${inputFile})
-        local goodLines=$(grep -E "${lineRegex}" ${inputFile})
+        local goodLines=$(grep -E "${LINEREGEX}" ${inputFile})
 
-        # if [ ${DEBUG} -eq ${TRUE} ] ; then 
-        #     echo -e "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-        #     echo -e "~originalLines | (Num of lines: `echo -e "${originalLines}" | wc -l` )"
-        #     echo -e "${originalLines}\n---\n"
-        #     echo -e "~goodLines | (Num of lines: `echo -e "${goodLines}" | wc -l` )"
-        #     echo -e "${goodLines}\n---"
-        #     echo -e "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+        # if [ ${DEBUG} = "${TRUE}" ] ; then 
+        #     echo -e "+++++++++++++++++++++++"
+        #     echo -e "{ORIGINAL FILE} | Lines # : `echo -e "${originalLines}" | wc -l`"
+        #     echo -e "${originalLines}\n{END}\n"
+        #     echo -e "{ACCEPTABLE PART} | Lines # : `echo -e "${goodLines}" | wc -l` "
+        #     echo -e "${goodLines}\n{END}}"
+        #     echo -e "+++++++++++++++++++++++\n"
         # fi 
         
         #Check if all lines of the file are valid
@@ -85,7 +88,7 @@ check(){
             if [ ${CHECK} -eq ${TRUE} ] || [ ${DEBUG} -eq ${TRUE} ]; then echo -e "{DEBUG} - Function: check(). Check file: ${inputFile} --> File is valid!" ; fi ; 
             result=0
         else
-            error "{DEBUG} - Function: check(). Check file: ${inputFile} --> File exists, is not empty and is readable. But file does not have the needed format!"
+            error "{DEBUG} - Function: check(). Check file: ${inputFile} --> File does not have the needed format!"
             result=11
         fi 
     elif [ ! -f ${inputFile} ] ; then
@@ -121,7 +124,6 @@ check(){
 #   see:    Inline documentation of check() function for K values 
 #
 regr(){
-    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "{DEBUG} - Function: regr() START FROM HERE ------------------------->"; fi
     check $1
     local ERROR=$?
     
@@ -130,18 +132,18 @@ regr(){
 
     #Read file's X and Y vectors
     length=$(echo -e "$(cat $1)" | wc -l ) #If i use `cat $1 | wc -l` and the last line is not empty, the length is wrong
-    X_vector=$(cat "$1" | cut -d":" -f 1)
-    Y_vector=$(cat "$1" | cut -d":" -f 2) 
+    X_vector=$(cat "$1" | cut -d":" -f 1 | tr "," "\.")
+    Y_vector=$(cat "$1" | cut -d":" -f 2 | tr "," "\.") 
     
     #Just a DEBUG message, print X and Y vectors from strings
     # if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "\n{VECTORS - STRINGS} - length: ${length}" ; echo "$(paste <( echo "X ${X_vector}" | tr " " "\n" ) <( for ((i=0;i<=${length};i++)) ; do echo -e "|" ; done ; ) <( echo -e "Y ${Y_vector}" | tr " " "\n" ) -d " " | column -t)" ; fi
 
     # ---------------------------------------------------------------------------------------
-    #   Calculate mantatory sums we need, in order to calculate parameters and squared error
+    #   Calculate mantatory sums we need, in order to calculate coefficients and standard squared error
     #
     #
     unset X ; unset Y                                                       #Delete both arrays, if already exist
-    # Create X and Y arrays or return 2 if something is wrong
+    # Create X and Y arrays or exit if something is wrong
     declare -a X=(${X_vector}) ; if [ $? -ne 0 ] ; then return 3; fi
     declare -a Y=(${Y_vector}) ; if [ $? -ne 0 ] ; then return 3; fi
 
@@ -159,7 +161,7 @@ regr(){
     if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "\n{SUMS}" ; echo -e "sum_x : ${sum_x}\nsum_y : ${sum_y}\nsum_xy: ${sum_xy}\nsum_x2: ${sum_x2}" ; fi
 
     # ---------------------------------------------------------------------------------------
-    #                  Calculate Linear Regression parameters and squared error
+    #                  Calculate Linear Regression coefficients and standard squared error
     #
     #                                                                                 ____
     #         (length*sum_xy) - (sum_x*sum_y)            sum_y - (a*sum_x)            \                       2
@@ -192,14 +194,13 @@ regr(){
     a_p="$(echo ${a} | awk '{printf "%.2f", $0}')"                  #From DEC places used for calculations, use only 2 of them and begin with zero if value is -.1 or .2 etc...
     b_p="$(echo ${b} | awk '{printf "%.2f", $0}')"                  #From DEC places used for calculations, use only 2 of them and begin with zero if value is -.1 or .2 etc...
     err_p="$(echo ${err} | awk '{printf "%.2f", $0}')"              #From DEC places used for calculations, use only 2 of them and begin with zero if value is -.1 or .2 etc...
-    echo "FILE: $1, a=${a_p//\.00} b=${b_p//\.00} c=1 err=${err_p//\.00}" 
-    if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "{DEBUG} - Function: regr() <~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ENDED HERE"; fi
+    echo "FILE: $1, a=${a_p//\.00} b=${b_p//\.00} c=1 err=${err_p//\.00}"  #Remove fractional part if number looks like this X.00 using "Shell Parameter Expansion"
     return 0                    
 }
 
 
 # -----------------------------------------------------------------------------------------------------------------------------------------------------
-#   brief: Calculate and print parameters and squared error for each file (or print error message)
+#   brief: Call regr() function for each file or print error message
 #
 #   param: $1 -> The name of the file (actually its path).
 #
@@ -232,12 +233,12 @@ calc_and_print_results(){
 #   brief: Help menu
 #
 usage() {
-    echo "Usage: `basename ${0}` [-h] | [-t] | [-c filetocheck] | [-dq] [-e errorfile] [-o outputfile] <inputfiles>..."
+    echo "Usage: `basename ${0}` [-h] | [-c filetocheck] | [-dq] [-e errorfile] [-o outputfile] <inputfiles>..."
     echo 
-    echo "Calculate Linear Regression parameters that minimize linear regression squared error."
+    echo "Calculate Linear Regression coefficients that minimize linear regression standard squared error."
     echo "The input file's format is a collection of elements of two vectors' (X and Y). Each row looks like this: "
     echo "Xi:Yi"
-    echo "Where Xi and Yi are floating poing numbers."
+    echo "Where Xi and Yi are floating poing numbers. Please use dot symbol as decimal separator"
     echo 
     echo "Options:"
     echo "  -c                check an input file if is valid and exit"
@@ -246,7 +247,6 @@ usage() {
     echo "  -h                print this help menu and exit"   
     echo "  -o                write output in given file #TODO -is not working at the moment"
     echo "  -q                enable errors reporting"
-    echo "  -t                run unit tests #TODO -is not working at the moment"
     echo 
     echo
     echo "Exit status:"
@@ -267,24 +267,14 @@ usage() {
     echo "Examples:"
     echo "   `basename ${0}` -e errorfile.txt inputfile.txt"
     echo "   `basename ${0}` -c inputfile.txt      # Check if input file is acceptable"
-    echo "   `basename ${0}` -d -e errorsfile.txt -o results.txt input1.txt input2.txt input3.txt"
+    echo "   `basename ${0}` -d -e errorfile.txt -o results.txt input1.txt input2.txt input3.txt"
+    echo "   `basename ${0}` input1.txt input2.txt input3.txt"
     echo 
     echo "Implementation:"
     echo "   version         `basename ${0}` 0.0.1"
     echo "   author          Spyridakis Christos"
     echo "   copyright       Copyright (c) 2019 https://www.github.com/CSpyridakis/SDTSP"
     echo "   license         MIT License"
-}
-
-
-# -----------------------------------------------------------------------------------------------------------------------------------------------------
-#   brief: Just run my tests
-#
-tests(){
-    #TODO
-    # For testes created rows with this regex:
-    # ^[-]?([0-9]{1,5}\.?|[0-9]{0,5}\.[0-9]{1,5}):[-]?([0-9]{1,5}\.?|[0-9]{0,5}\.[0-9]{1,5})$
-    return 0
 }
 
 
@@ -299,18 +289,17 @@ while getopts ":c:de:ho:q" opt ; do
         h)      usage ; exit 0                                                              ;;  
         o)      OUTPUT_FILE="${OPTARG}"                                                     ;;  
         q)      QUIET=${FALSE}                                                              ;;  
-        t)      tests                                          ;    exit $?                 ;;  
         :)      QUIET=${FALSE} ; error "Missing argument for -$OPTARG option! Execute: \$ ${0} -h, in order to see properly usage." ; exit 1  ;;
-        \?)     QUIET=${FALSE} ; error "Invalid option: -$OPTARG Execute: \$ ${0} -h, in order to see properly usage."              ; exit 2  ;; 
+        \?)     QUIET=${FALSE} ; error "Invalid option: -$OPTARG. Execute: \$ ${0} -h, in order to see properly usage."              ; exit 2  ;; 
     esac
 done
-if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "Bash version: ${BASH_VERSION}...\n" ; fi;
+if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "{DEBUG} - Bash version: ${BASH_VERSION}..." ; fi;
 if [ ! -z ${ERRORS_FILE} ] ; then echo -n "" > "${ERRORS_FILE}" ; fi ;
 
 #Remaining Arguments
 shift $(($OPTIND - 1))  #Move to the next args
 remainingArgs=$(echo $* | tr -s " " | tr "," " ") #Squeeze extra spaces and tranlate every comma to space. Remember valid input is also this: file1,file2,file3... 
-if [ ${DEBUG} -eq ${TRUE} ] ; then echo "Remaining arguments are: |${remainingArgs}|" ; fi;
+if [ ${DEBUG} -eq ${TRUE} ] ; then echo "{DEBUG} - Remaining arguments are: |${remainingArgs}|" ; fi;
 
 #Check remaining input data if there is not extra flags
 if [ ! -z  "$(echo "${remainingArgs}" | grep -E " \-[a-zA-Z]{1,}")" ] ; then 
@@ -321,6 +310,6 @@ fi
 
 #Calculate and print parameter and squared error for each file
 for inFile in ${remainingArgs} ; do
+    if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "________________________________________________________________________________________________\n" ; fi;
     calc_and_print_results ${inFile}
-    if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "\n________________________________________________________________________________________________\n" ; fi;
 done
