@@ -71,7 +71,7 @@ check(){
         #Check if all lines of the file are in the needed format.
         #Each line must contain this: "F:F". Where F is a floating point number.
         #Acceptable representations for F are: -3 , 4 , 2. , -41. , 290.09 , -234.1 , -.23 , .9 , etc..
-        local originalLines=$(cat ${inputFile})
+        local originalLines=$(grep . ${inputFile})
         local goodLines=$(grep -E "${LINEREGEX}" ${inputFile})
 
         # if [ ${DEBUG} = "${TRUE}" ] ; then 
@@ -131,9 +131,9 @@ regr(){
     if [ ${ERROR} -ne 0 ] ; then return ${ERROR}; fi
 
     #Read file's X and Y vectors
-    length=$(echo -e "$(cat $1)" | wc -l ) #If i use `cat $1 | wc -l` and the last line is not empty, the length is wrong
-    X_vector=$(cat "$1" | cut -d":" -f 1 | tr "," "\.")
-    Y_vector=$(cat "$1" | cut -d":" -f 2 | tr "," "\.") 
+    length=$(echo -e "$(cat "$1" | grep .)" | wc -l ) #If i use `cat $1 | wc -l` and the last line is not empty, the length is wrong
+    X_vector=$(cat "$1" | grep . | cut -d":" -f 1 | tr "," "\.")
+    Y_vector=$(cat "$1" | grep . | cut -d":" -f 2 | tr "," "\.") 
     
     #Just a DEBUG message, print X and Y vectors from strings
     # if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "\n{VECTORS - STRINGS} - length: ${length}" ; echo "$(paste <( echo "X ${X_vector}" | tr " " "\n" ) <( for ((i=0;i<=${length};i++)) ; do echo -e "|" ; done ; ) <( echo -e "Y ${Y_vector}" | tr " " "\n" ) -d " " | column -t)" ; fi
