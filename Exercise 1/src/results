@@ -20,7 +20,7 @@ FALSE=0
 TRUE=1
 TMP_FILE="tmpfile.txt"
 # Use regular expression to validate input file
-LINEREGEX="^[^- ]+-[^- ]+:[0-9]+-[0-9]+$"       #For testing: ^[^- ]{1,5}-[^- ]{1,5}:[0-9]{1,5}-[0-9]{1,5}$
+LINEREGEX="^[^-]+-[^-]+:[0-9]+-[0-9]+$"       #For testing: ^[^-]{1,10}-[^-]{1,10}:[0-9]{1,10}-[0-9]{1,10}$
 
 # Based from user input
 INPUT_FILES="" # TODO 
@@ -69,7 +69,8 @@ check(){
     if [ -f ${inputFile} ] && [ -r ${inputFile} ] && [ -s ${inputFile} ]; then
         
         #Check if all lines of the file are in the needed format.
-        local originalLines=$(cat ${inputFile})
+        # local originalLines=$(cat ${inputFile})
+        local originalLines=$(grep . ${inputFile})
         local goodLines=$(grep -E "${LINEREGEX}" ${inputFile})
 
         # if [ ${DEBUG} = "${TRUE}" ] ; then 
@@ -150,7 +151,7 @@ results(){
         if [ ${ERROR} -ne 0 ] ; then return ${ERROR}; fi
     done
 
-    inptText=$(cat "$@")
+    inptText=$(cat "$@" | grep .)
 
     unset teamsNames ; unset rankScore ; unset scoredGoals ; unset concededGoals ;  #Delete arrays, if already exist
 
@@ -159,18 +160,20 @@ results(){
     declare -A scoredGoals          # Use associative array to store each team scored goals
     declare -A concededGoals        # Use associative array to store each team conceded goals
 
-    # Read each line, find out team names and scores, and calculate scored/conceded goals for each team and each team rank score
+    # Read each line, find out team names/scores and calculate scored/conceded goals for each team and each team rank score
+    OLD_IFS=${IFS}
+    IFS=$'\n'
+    if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "{TEAMS}" ; fi ;
     for line in ${inptText} ; do
 
-        local teamA=$(echo ${line} | cut -d"-" -f1)                                  # teamA-{could contain :}:{X-Y}
-        local teamB=$(echo ${line} | cut -d"-" -f2 | rev | cut -d":" -f2- | rev)     # {could contain :}-teamB:{X-Y} , for this reason i try to extract only the name
-        local scoreA=$(echo ${line} | rev | cut -d":" -f1 | cut -d"-" -f2 | rev)     # could contain more than one :
-        local scoreB=$(echo ${line} | rev | cut -d"-" -f1 | rev)                     # could contain more than one :
+        teamA=$(echo ${line} | cut -d"-" -f1 | tr " " "-")                                  # teamA-{could contain :}:{Na-Nb}
+        teamB=$(echo ${line} | cut -d"-" -f2 | rev | cut -d":" -f2- | rev | tr " " "-")     # {could contain :}-teamB:{Na-Nb} , for this reason i try to extract only the name by reverting string
+        scoreA=$(echo ${line} | rev | cut -d":" -f1 | cut -d"-" -f2 | rev)     # could contain more than one :
+        scoreB=$(echo ${line} | rev | cut -d"-" -f1 | rev)                     # could contain more than one :
         
-        if [ ${DEBUG} -eq ${TRUE} ] ; then echo "TeamA: '${teamA}' - TeamB: '${teamB}' | ScoreA: ${scoreA} - ScoreB: ${scoreB}    " ; fi ;
+        if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "TeamA: '${teamA}' - TeamB: '${teamB}' | ScoreA: ${scoreA} - ScoreB: ${scoreB}" ; fi ;
 
         # Check if each team already exists or add it  
-        #TODO: CHANGE EXIST  
         exists "${teamsNames[@]}" "${teamA}"
         if [ $? -eq 1 ] ; then teamsNames+=("${teamA}") ; rankScore+=(["${teamA}"]=0) ; scoredGoals+=(["${teamA}"]=0) ; concededGoals+=(["${teamA}"]=0) ; fi
         exists "${teamsNames[@]}" "${teamB}"
@@ -179,45 +182,41 @@ results(){
         # if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n{TEAM VARIABLES IN ARRAYS}  Number of teams: ${#teamsNames[@]}\n" ; echo "$(paste <( for ((i=-1;i<=${#teamsNames[@]};i++)) ; do  if [ ${i} -lt 1 ] ; then echo "#" ; else echo -e "${i}." ; fi ; done ; ) <( echo "Teams(Rank) ----------- ${!rankScore[@]}" | tr " " "\n" ) <( echo "Rank ---- ${rankScore[@]}" | tr " " "\n" ) <( echo "Teams(ScoredGoals) ------------------ ${!scoredGoals[@]}" | tr " " "\n" ) <( echo "ScoredGoals ----------- ${scoredGoals[@]}" | tr " " "\n" ) <( echo "Teams(ConcededGoals) -------------------- ${!concededGoals[@]}" | tr " " "\n" ) <( echo "ConcededGoals ------------- ${concededGoals[@]}" | tr " " "\n" ) -d " " | column -t)" ; fi
 
         #Team A win
-        if [ ${scoreA} -gt ${scoreB} ] ; then
-            rankScore["${teamA}"]=`expr ${rankScore["${teamA}"]} + 3`
+        if [ "$(echo "${scoreA} > ${scoreB}" | bc -l)" -eq "1" ] ; then
+            rankScore["${teamA}"]=$(echo "${rankScore["${teamA}"]} + 3" | bc)
         #Team B win
-        elif [ ${scoreA} -lt ${scoreB} ] ; then
-            rankScore["${teamB}"]=`expr ${rankScore["${teamB}"]} + 3`
+        elif [ "$(echo "${scoreA} < ${scoreB}" | bc -l)" -eq "1" ] ; then
+            rankScore["${teamB}"]=$(echo "${rankScore["${teamB}"]} + 3" | bc)
         #
         else
-            rankScore["${teamA}"]=`expr ${rankScore["${teamA}"]} + 1`
-            rankScore["${teamB}"]=`expr ${rankScore["${teamB}"]} + 1`
+            rankScore["${teamA}"]=$(echo "${rankScore["${teamA}"]} + 1" | bc)
+            rankScore["${teamB}"]=$(echo "${rankScore["${teamB}"]} + 1" | bc)
         fi
 
-        # Update 
-        scoredGoals["${teamA}"]=`expr ${scoredGoals["${teamA}"]} + ${scoreA}`
-        scoredGoals["${teamB}"]=`expr ${scoredGoals["${teamB}"]} + ${scoreB}`
-
-        concededGoals["${teamA}"]=`expr ${concededGoals["${teamA}"]} + ${scoreB}`
-        concededGoals["${teamB}"]=`expr ${concededGoals["${teamB}"]} + ${scoreA}`
-        
+        # Update Goals statistics
+        scoredGoals["${teamA}"]=$(echo "${scoredGoals["${teamA}"]} + ${scoreA}" | bc)
+        scoredGoals["${teamB}"]=$(echo "${scoredGoals["${teamB}"]} + ${scoreB}" | bc)
+        concededGoals["${teamA}"]=$(echo "${concededGoals["${teamA}"]} + ${scoreB}" | bc)
+        concededGoals["${teamB}"]=$(echo "${concededGoals["${teamB}"]} + ${scoreA}" | bc)
     done
+    IFS=${OLD_IFS}
 
-    # echo ${teamsNames[@]}
-
-    #DEBUG
-    # if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "\n{TEAM VARIABLES IN ARRAYS}  Number of teams: ${#teamsNames[@]}\n" ; echo "$(paste <( for ((i=-1;i<=${#teamsNames[@]};i++)) ; do  if [ ${i} -lt 1 ] ; then echo "#" ; else echo -e "${i}." ; fi ; done ; ) <( echo "Teams(Rank) ----------- ${!rankScore[@]}" | tr " " "\n" ) <( echo "Rank ---- ${rankScore[@]}" | tr " " "\n" ) <( echo "Teams(ScoredGoals) ------------------ ${!scoredGoals[@]}" | tr " " "\n" ) <( echo "ScoredGoals ----------- ${scoredGoals[@]}" | tr " " "\n" ) <( echo "Teams(ConcededGoals) -------------------- ${!concededGoals[@]}" | tr " " "\n" ) <( echo "ConcededGoals ------------- ${concededGoals[@]}" | tr " " "\n" ) -d " " | column -t)" ; fi
+    #DEBUG message
+    if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "\n{TEAM VARIABLES IN ARRAYS}  Number of teams: ${#teamsNames[@]}" ; echo "$(paste <( for ((i=-1;i<=${#teamsNames[@]};i++)) ; do  if [ ${i} -lt 1 ] ; then echo "#" ; else echo -e "${i}." ; fi ; done ; ) <( echo "Teams(Rank) ----------- ${!rankScore[@]}" | tr " " "\n" ) <( echo "Rank ---- ${rankScore[@]}" | tr " " "\n" ) <( echo "Teams(ScoredGoals) ------------------ ${!scoredGoals[@]}" | tr " " "\n" ) <( echo "ScoredGoals ----------- ${scoredGoals[@]}" | tr " " "\n" ) <( echo "Teams(ConcededGoals) -------------------- ${!concededGoals[@]}" | tr " " "\n" ) <( echo "ConcededGoals ------------- ${concededGoals[@]}" | tr " " "\n" ) -d " " | column -t)" ; fi
 
     calLines=""
-
     for ((i=0;i < ${#teamsNames[@]};i++)) ; do
-        line="${teamsNames[$i]} ${rankScore[${teamsNames[$i]}]} ${scoredGoals[${teamsNames[$i]}]}-${concededGoals[${teamsNames[$i]}]}"
+        #TODO sometimes \t does not work
+        line="$(echo ${teamsNames[$i]} | tr "-" " ")\t${rankScore[${teamsNames[$i]}]}\t${scoredGoals[${teamsNames[$i]}]}-${concededGoals[${teamsNames[$i]}]}"
         if [ $i -lt $(( ${#teamsNames[@]} - 1 )) ] ; then line+="\n" ; fi
         calLines+=${line}
     done
 
-    # echo  ${calLines}
-
-    echo "$((paste <( for ((i=1;i<=${#teamsNames[@]};i++)) ; do  echo "${i}." ;  done ; ) <( echo -e ${calLines} | sort -r -t" " -nk2 -k1) -d " ") | tr " " "\t" )  "
+    #Print final result
+    if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "\n{RESULTS}" ; fi ;
+    echo "$(paste <( for ((i=1;i<=${#teamsNames[@]};i++)) ; do  echo "${i}." ; done ;) <( echo -e ${calLines} | sort -t$'\t' -nk2,2r -k1,1) -d "\t")"
 
     unset teamsNames ; unset rankScore ; unset scoredGoals ; unset concededGoals ;  #Delete each array
-
     return 0
 }
 
@@ -308,8 +307,8 @@ while getopts ":c:de:ho:q" opt ; do
         h)      usage ; exit 0                                                              ;;  
         o)      OUTPUT_FILE="${OPTARG}"                                                     ;;  
         q)      QUIET=${TRUE}                                                               ;;    
-        :)      error "Missing argument for -$OPTARG option!\nExecute: \$ ${0} -h, in order to see properly usage."; exit 1  ;;
-        \?)     error "Invalid option: -$OPTARG\nExecute: \$ ${0} -h, in order to see properly usage."             ; exit 2  ;; 
+        :)      QUIET=${FALSE} ; error "Missing argument for -$OPTARG option! Execute: \$ ${0} -h, in order to see properly usage." ; exit 1  ;;
+        \?)     QUIET=${FALSE} ; error "Invalid option: -$OPTARG. Execute: \$ ${0} -h, in order to see properly usage."              ; exit 2  ;;
     esac
 done
 if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "{DEBUG} - Bash version: ${BASH_VERSION}..." ; fi;
