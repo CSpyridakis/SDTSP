@@ -1,10 +1,11 @@
 #!/bin/bash
 ##################################################################################################
-#   regr script
+#
+#   regr bash script
 #
 #   Author : Spyridakis Christos
 #   Created Date : 8/10/2019
-#   Last Updated : 15/10/2019
+#   Last Updated : 18/10/2019
 #   Email : spyridakischristos@gmail.com
 #
 #   Description : Calculate Linear Regression coefficients that minimize linear regression standard 
@@ -16,14 +17,17 @@
 #
 ##################################################################################################
 
+
+# Use regular expression to validate input files
+LINEREGEX="^[-]?([0-9]+[\.,]?|[0-9]*[\.,][0-9]+):[-]?([0-9]+[\.,]?|[0-9]*[\.,][0-9]+)$"        
+#For input testing: ^[-]?([0-9]{1,10}[\.,]?|[0-9]{0,10}[\.,][0-9]{1,10}):[-]?([0-9]{1,10}[\.,]?|[0-9]{0,10}[\.,][0-9]{1,10})$
+
 # Auxiliary variables 
 DEC=10               #Number of decimals of precision for calculations
 FALSE=0
 TRUE=1
-# Use regular expression to validate input file
-LINEREGEX="^[-]?([0-9]+[\.,]?|[0-9]*[\.,][0-9]+):[-]?([0-9]+[\.,]?|[0-9]*[\.,][0-9]+)$"        
 
-# Based from user input
+# Based on user input
 OUTPUT_FILE=
 ERRORS_FILE=
 CHECK_FILE=
@@ -31,6 +35,7 @@ DEBUG=${FALSE}
 QUIET=${TRUE}
 CHECK=${FALSE}
 
+VERSION="1.0.0"
 
 # ---------------------------------------------------------------------------------------------
 #   brief: Print in stderr and/or in external file the error messages based on user input options
@@ -55,22 +60,23 @@ error(){
 #           11 if something is wrong with the format of the file at any point,
 #           12 if file is too big,
 #           13 if there is not read permission,
-#           14 if file does not exist
+#           14 if file does not exist,
+#           15 if is not a regular file,
 #           3 for unexpected error
 #
 check(){
-    #In case that user wants to display error messages to a file, create it or empty its previous content
+    # In case that user wants to display error messages to a file, create it or empty its previous content
     if [ ${CHECK} -eq ${TRUE} ] && [ ! -z ${ERRORS_FILE} ] ; then echo -n "" > "${ERRORS_FILE}" ; fi ;
 
     local result=3
     local inputFile=$1
 
-    # File exists, is readable and is not empty BUT i don't know yet if it is acceptable
-    if [ -f ${inputFile} ] && [ -r ${inputFile} ] && [ -s ${inputFile} ]; then
+    # File exists, is regular file, is readable and is not empty BUT i don't know yet if it is acceptable
+    if [ -e ${inputFile} ] && [ -f ${inputFile} ] && [ -r ${inputFile} ] && [ -s ${inputFile} ]; then
         
-        #Check if all lines of the file are in the needed format.
-        #Each line must contain this: "F:F". Where F is a floating point number.
-        #Acceptable representations for F are: -3 , 4 , 2. , -41. , 290.09 , -234.1 , -.23 , .9 , etc..
+        # Check if all lines of the file are in the needed format.
+        # Each line must contain this: "F:F". Where F is a floating point number.
+        # Acceptable representations for F are: -3 , 4 , 2. , -41. , 290.09 , -234.1 , -.23 , .9 , etc..
         local originalLines=$(grep . ${inputFile})
         local goodLines=$(grep -E "${LINEREGEX}" ${inputFile})
 
@@ -83,7 +89,7 @@ check(){
         #     echo -e "+++++++++++++++++++++++\n"
         # fi 
         
-        #Check if all lines of the file are valid
+        # Check if all lines of the file are valid
         if [ "${originalLines}" == "${goodLines}" ] ; then
             if [ ${CHECK} -eq ${TRUE} ] || [ ${DEBUG} -eq ${TRUE} ]; then echo -e "{DEBUG} - Function: check(). Check file: ${inputFile} --> File is valid!" ; fi ; 
             result=0
@@ -91,9 +97,12 @@ check(){
             error "{DEBUG} - Function: check(). Check file: ${inputFile} --> File does not have the needed format!"
             result=11
         fi 
-    elif [ ! -f ${inputFile} ] ; then
+    elif [ ! -e ${inputFile} ] ; then
         error "{DEBUG} - Function: check(). Check file: ${inputFile} --> File does not exist"
         result=14
+    elif [ ! -f ${inputFile} ] ; then
+        error "{DEBUG} - Function: check(). Check file: ${inputFile} --> This is not a regular file"
+        result=15
     elif [ ! -r ${inputFile} ] ; then
         error "{DEBUG} - Function: check(). Check file: ${inputFile} --> File is not readable"
         result=13
@@ -127,35 +136,35 @@ regr(){
     check $1
     local ERROR=$?
     
-    #Exit function if there is something wrong with this file
+    # Exit function if there is something wrong with this file
     if [ ${ERROR} -ne 0 ] ; then return ${ERROR}; fi
 
-    #Read file's X and Y vectors
+    # Read file's X and Y vectors
     length=$(echo -e "$(cat "$1" | grep .)" | wc -l ) #If i use `cat $1 | wc -l` and the last line is not empty, the length is wrong
     X_vector=$(cat "$1" | grep . | cut -d":" -f 1 | tr "," "\.")
     Y_vector=$(cat "$1" | grep . | cut -d":" -f 2 | tr "," "\.") 
     
-    #Just a DEBUG message, print X and Y vectors from strings
+    # Just a DEBUG message, print X and Y vectors from strings
     # if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "\n{VECTORS - STRINGS} - length: ${length}" ; echo "$(paste <( echo "X ${X_vector}" | tr " " "\n" ) <( for ((i=0;i<=${length};i++)) ; do echo -e "|" ; done ; ) <( echo -e "Y ${Y_vector}" | tr " " "\n" ) -d " " | column -t)" ; fi
 
     # ---------------------------------------------------------------------------------------
     #   Calculate mantatory sums we need, in order to calculate coefficients and standard squared error
     #
     #
-    unset X ; unset Y                                                       #Delete both arrays, if already exist
+    unset X ; unset Y                                                       # Delete both arrays, if already exist
     # Create X and Y arrays or exit if something is wrong
     declare -a X=(${X_vector}) ; if [ $? -ne 0 ] ; then return 3; fi
     declare -a Y=(${Y_vector}) ; if [ $? -ne 0 ] ; then return 3; fi
 
-    #Just a DEBUG message, print X and Y vectors from Arrays
+    # Just a DEBUG message, print X and Y vectors from Arrays
     if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "\n{VECTORS - ARRAYS} - X_length: ${#X[@]} | Y_length: ${#Y[@]}" ; echo "$(paste <( echo "X ${X[@]}" | tr " " "\n" ) <( for ((i=0;i<=${length};i++)) ; do echo -e "|" ; done ; ) <( echo -e "Y ${Y[@]}" | tr " " "\n" ) -d " " | column -t)" ; fi
 
     local sum_x=0 ; local sum_y=0 ; local sum_xy=0 ; local sum_x2=0         # Init sums
     for ((i = 0; i <= ((${length} - 1)); i++)) ; do
-        sum_x=$(echo "scale=${DEC}; ${sum_x} + ${X[i]}" | bc)               #sum_x = X[0] + X[1] + X[2] + ... + X[length-1]
-        sum_y=$(echo "scale=${DEC}; ${sum_y} + ${Y[i]}" | bc)               #sum_y = Y[0] + Y[1] + Y[2] + ... + Y[length-1]
-        sum_xy=$(echo "scale=${DEC}; ${sum_xy} + (${X[i]}*${Y[i]})" | bc)   #sum_xy = X[0]*Y[0] + X[1]*Y[1] + X[2]*Y[2] + ... + X[length-1]*Y[length-1]
-        sum_x2=$(echo "scale=${DEC}; ${sum_x2} + (${X[i]}^2)" | bc)         #sum_x2 = X[0]^2 + X[1]^2 + X[2]^2 + ... + X[length-1]^2
+        sum_x=$(echo "scale=${DEC}; ${sum_x} + ${X[i]}" | bc)               # sum_x = X[0] + X[1] + X[2] + ... + X[length-1]
+        sum_y=$(echo "scale=${DEC}; ${sum_y} + ${Y[i]}" | bc)               # sum_y = Y[0] + Y[1] + Y[2] + ... + Y[length-1]
+        sum_xy=$(echo "scale=${DEC}; ${sum_xy} + (${X[i]}*${Y[i]})" | bc)   # sum_xy = X[0]*Y[0] + X[1]*Y[1] + X[2]*Y[2] + ... + X[length-1]*Y[length-1]
+        sum_x2=$(echo "scale=${DEC}; ${sum_x2} + (${X[i]}^2)" | bc)         # sum_x2 = X[0]^2 + X[1]^2 + X[2]^2 + ... + X[length-1]^2
     done
 
     if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "\n{SUMS}" ; echo -e "sum_x : ${sum_x}\nsum_y : ${sum_y}\nsum_xy: ${sum_xy}\nsum_x2: ${sum_x2}" ; fi
@@ -173,7 +182,7 @@ regr(){
     local a_divisor=$(echo "scale=${DEC}; ( (${length}*${sum_x2}) - (${sum_x}*${sum_x}) )" | bc)
     if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "\n{DIVISION}" ; echo -e "a_dividend: ${a_dividend}\na_divisor : ${a_divisor}\n" ; fi
 
-    #Check if divisor for calculation of 'a' is zero. dividend/0 is not acceptable
+    # Check if divisor for calculation of 'a' is zero. dividend/0 is not acceptable
     if [ "$(echo "${a_divisor} == 0" | bc -l)" -ne "1" ] ; then 
         local a=$(echo "scale=${DEC}; ( ${a_dividend}/${a_divisor} )" | bc)
         local b=$(echo "scale=${DEC}; ( ${sum_y} - (${a}*${sum_x}) )/( ${length} )" | bc)
@@ -185,16 +194,15 @@ regr(){
        return 1 
     fi
     
-    #Delete each array
-    unset X ; unset Y                                                       
-
+    # Display decimal places only if necessary and convert .2 or -.2 --> 0.2 and -0.2
+    a_p="$(echo ${a} | awk '{printf "%.2f", $0}')"                          # From DEC places used for calculations, use only 2 of them and begin with zero if value is -.1 or .2 etc...
+    b_p="$(echo ${b} | awk '{printf "%.2f", $0}')"                          # From DEC places used for calculations, use only 2 of them and begin with zero if value is -.1 or .2 etc...
+    err_p="$(echo ${err} | awk '{printf "%.2f", $0}')"                      # From DEC places used for calculations, use only 2 of them and begin with zero if value is -.1 or .2 etc...
+    
     if [ ${DEBUG} -eq ${TRUE} ] ;  then echo -e "{RESULTS}" ; echo -e "a:   ${a}\nb:   ${b}\nerr: ${err}\n" ; fi
-
-    #Display decimal places only if necessary and convert .2 or -.2 --> 0.2 and -0.2
-    a_p="$(echo ${a} | awk '{printf "%.2f", $0}')"                  #From DEC places used for calculations, use only 2 of them and begin with zero if value is -.1 or .2 etc...
-    b_p="$(echo ${b} | awk '{printf "%.2f", $0}')"                  #From DEC places used for calculations, use only 2 of them and begin with zero if value is -.1 or .2 etc...
-    err_p="$(echo ${err} | awk '{printf "%.2f", $0}')"              #From DEC places used for calculations, use only 2 of them and begin with zero if value is -.1 or .2 etc...
-    echo "FILE: $1, a=${a_p//\.00} b=${b_p//\.00} c=1 err=${err_p//\.00}"  #Remove fractional part if number looks like this X.00 using "Shell Parameter Expansion"
+    echo "FILE: $1, a=${a_p//\.00} b=${b_p//\.00} c=1 err=${err_p//\.00}"   # Remove fractional part if number looks like this X.00 using "Shell Parameter Expansion"
+    
+    unset X ; unset Y       # Delete each array 
     return 0                    
 }
 
@@ -208,7 +216,7 @@ calc_and_print_results(){
     regr $1
     local ERROR=$?
 
-    #Print results (Take into consideration some error cases)
+    # Print results (Take into consideration some error cases)
     if [ ${ERROR} -eq 0 ] ; then 
         true
     elif [ ${ERROR} -eq 10 ] ; then 
@@ -221,6 +229,8 @@ calc_and_print_results(){
         echo "FILE: $1, there is not read permission"
     elif [ ${ERROR} -eq 14 ] ; then 
         echo "FILE: $1, file does not exist"
+    elif [ ${ERROR} -eq 15 ] ; then 
+        echo "FILE: $1, this is not a regular file"
     elif [ ${ERROR} -eq 1 ] ; then 
         echo "FILE: $1, divide by zero in the calculation of parameter a"
     else 
@@ -238,7 +248,7 @@ usage() {
     echo "Calculate Linear Regression coefficients that minimize linear regression standard squared error."
     echo "The input file's format is a collection of elements of two vectors' (X and Y). Each row looks like this: "
     echo "Xi:Yi"
-    echo "Where Xi and Yi are floating poing numbers. Please use dot symbol as decimal separator"
+    echo "Where Xi and Yi are floating poing numbers."
     echo 
     echo "Options:"
     echo "  -c                check an input file if is valid and exit"
@@ -262,7 +272,8 @@ usage() {
     echo "   11 if something is wrong with the format of the file at any point,"
     echo "   12 if file is too big,"
     echo "   13 if there is not read permission,"
-    echo "   14 if file does not exist"
+    echo "   14 if file does not exist,"
+    echo "   15 if this is not a regular file"
     echo 
     echo "Examples:"
     echo "   `basename ${0}` -e errorfile.txt inputfile.txt"
@@ -271,7 +282,7 @@ usage() {
     echo "   `basename ${0}` input1.txt input2.txt input3.txt"
     echo 
     echo "Implementation:"
-    echo "   version         `basename ${0}` 0.0.1"
+    echo "   version         `basename ${0}` ${VERSION}"
     echo "   author          Spyridakis Christos"
     echo "   copyright       Copyright (c) 2019 https://www.github.com/CSpyridakis/SDTSP"
     echo "   license         MIT License"
@@ -290,25 +301,25 @@ while getopts ":c:de:ho:q" opt ; do
         o)      OUTPUT_FILE="${OPTARG}"                                                     ;;  
         q)      QUIET=${FALSE}                                                              ;;  
         :)      QUIET=${FALSE} ; error "Missing argument for -$OPTARG option! Execute: \$ ${0} -h, in order to see properly usage." ; exit 1  ;;
-        \?)     QUIET=${FALSE} ; error "Invalid option: -$OPTARG. Execute: \$ ${0} -h, in order to see properly usage."              ; exit 2  ;; 
+        \?)     QUIET=${FALSE} ; error "Invalid option: -$OPTARG. Execute: \$ ${0} -h, in order to see properly usage."             ; exit 2  ;; 
     esac
 done
 if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "{DEBUG} - Bash version: ${BASH_VERSION}..." ; fi;
 if [ ! -z ${ERRORS_FILE} ] ; then echo -n "" > "${ERRORS_FILE}" ; fi ;
 
-#Remaining Arguments
-shift $(($OPTIND - 1))  #Move to the next args
-remainingArgs=$(echo $* | tr -s " " | tr "," " ") #Squeeze extra spaces and tranlate every comma to space. Remember valid input is also this: file1,file2,file3... 
+# Remaining Arguments
+shift $(($OPTIND - 1))  # Move to the next args
+remainingArgs=$(echo $* | tr -s " " | tr "," " ") # Squeeze extra spaces and tranlate every comma to space. Remember valid input is also this: file1,file2,file3... 
 if [ ${DEBUG} -eq ${TRUE} ] ; then echo "{DEBUG} - Remaining arguments are: |${remainingArgs}|" ; fi;
 
-#Check remaining input data if there is not extra flags
+# Check remaining input data if there is not extra flags
 if [ ! -z  "$(echo "${remainingArgs}" | grep -E " \-[a-zA-Z]{1,}")" ] ; then 
     QUIET=${FALSE}
     error "Please place OPTIONS before input files. Execute: \$ results -h, in order to see properly usage." 
     exit 1
 fi
 
-#Calculate and print parameter and squared error for each file
+# Calculate and print parameter and squared error for each file
 for inFile in ${remainingArgs} ; do
     if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "________________________________________________________________________________________________\n" ; fi;
     calc_and_print_results ${inFile}

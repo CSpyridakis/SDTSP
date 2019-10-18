@@ -5,7 +5,7 @@
 #
 #   Author : Spyridakis Christos
 #   Created Date : 7/10/2019
-#   Last Updated : 16/10/2019
+#   Last Updated : 18/10/2019
 #   Email : spyridakischristos@gmail.com
 #
 #   Description : 
@@ -15,14 +15,17 @@
 #
 ##################################################################################################
 
+
+# Use regular expression to validate input files
+LINEREGEX="^[^-]+-[^-]+:[0-9]+-[0-9]+$"       
+#For input testing: ^[^-]{1,10}-[^-]{1,10}:[0-9]{1,10}-[0-9]{1,10}$
+
 # Auxiliary variables 
 FALSE=0
 TRUE=1
 TMP_FILE="tmpfile.txt"
-# Use regular expression to validate input file
-LINEREGEX="^[^-]+-[^-]+:[0-9]+-[0-9]+$"       #For testing: ^[^-]{1,10}-[^-]{1,10}:[0-9]{1,10}-[0-9]{1,10}$
 
-# Based from user input
+# Based on user input
 INPUT_FILES="" # TODO 
 OUTPUT_FILE=
 ERRORS_FILE=
@@ -30,6 +33,8 @@ CHECK_FILE=
 DEBUG=${FALSE}
 QUIET=${TRUE}
 CHECK=${FALSE}
+
+VERSION="1.0.0"
 
 
 # ---------------------------------------------------------------------------------------------
@@ -55,20 +60,21 @@ error(){
 #           11 if something is wrong with the format of the file at any point,
 #           12 if file is too big,
 #           13 if there is not read permission,
-#           14 if file does not exist
+#           14 if file does not exist,
+#           15 if is not a regular file,
 #           3 for unexpected error
 #
 check(){
-    #In case that user wants to display error messages to a file, create it or empty its previous content
+    # In case that user wants to display error messages to a file, create it or empty its previous content
     if [ ${CHECK} -eq ${TRUE} ] && [ ! -z ${ERRORS_FILE} ] ; then echo -n "" > "${ERRORS_FILE}" ; fi ;
 
     local result=3
     local inputFile=$1
 
-    # File exists, is readable and is not empty BUT i don't know yet if it is acceptable
-    if [ -f ${inputFile} ] && [ -r ${inputFile} ] && [ -s ${inputFile} ]; then
+    # File exists, is regular file, is readable and is not empty BUT i don't know yet if it is acceptable
+    if [ -e ${inputFile} ] && [ -f ${inputFile} ] && [ -r ${inputFile} ] && [ -s ${inputFile} ]; then
         
-        #Check if all lines of the file are in the needed format.
+        # Check if all lines of the file are in the needed format.
         # local originalLines=$(cat ${inputFile})
         local originalLines=$(grep . ${inputFile})
         local goodLines=$(grep -E "${LINEREGEX}" ${inputFile})
@@ -82,7 +88,7 @@ check(){
         #     echo -e "+++++++++++++++++++++++\n"
         # fi 
         
-        #Check if all lines of the file are valid
+        # Check if all lines of the file are valid
         if [ "${originalLines}" == "${goodLines}" ] ; then
             if [ ${CHECK} -eq ${TRUE} ] || [ ${DEBUG} -eq ${TRUE} ]; then echo -e "{DEBUG} - Function: check(). Check file: ${inputFile} --> File is valid!\n" ; fi ; 
             result=0
@@ -90,9 +96,12 @@ check(){
             error "{DEBUG} - Function: check(). Check file: ${inputFile} --> File does not have the needed format!"
             result=11
         fi 
-    elif [ ! -f ${inputFile} ] ; then
+    elif [ ! -e ${inputFile} ] ; then
         error "{DEBUG} - Function: check(). Check file: ${inputFile} --> File does not exist"
         result=14
+    elif [ ! -f ${inputFile} ] ; then
+        error "{DEBUG} - Function: check(). Check file: ${inputFile} --> This is not a regular file"
+        result=15
     elif [ ! -r ${inputFile} ] ; then
         error "{DEBUG} - Function: check(). Check file: ${inputFile} --> File is not readable"
         result=13
@@ -141,19 +150,19 @@ exists(){
 results(){
     local ERROR=3
 
-    #Check each file
+    # Check each file
     for inFile in $@ ; do
         if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "________________________________________________________________________________________________\n" ; fi;
         check ${inFile}
         ERROR=$?
 
-        #Exit function if there is something wrong one of the given files
+        # Exit function if there is something wrong one of the given files
         if [ ${ERROR} -ne 0 ] ; then return ${ERROR}; fi
     done
 
     inptText=$(cat "$@" | grep .)
 
-    unset teamsNames ; unset rankScore ; unset scoredGoals ; unset concededGoals ;  #Delete arrays, if already exist
+    unset teamsNames ; unset rankScore ; unset scoredGoals ; unset concededGoals ;  # Delete arrays, if already exist
 
     declare -a teamsNames           # Numeric indexed array contains team names
     declare -A rankScore            # Use associative array to store team rank score
@@ -168,8 +177,8 @@ results(){
 
         teamA=$(echo ${line} | cut -d"-" -f1 | tr " " "-")                                  # teamA-{could contain :}:{Na-Nb}
         teamB=$(echo ${line} | cut -d"-" -f2 | rev | cut -d":" -f2- | rev | tr " " "-")     # {could contain :}-teamB:{Na-Nb} , for this reason i try to extract only the name by reverting string
-        scoreA=$(echo ${line} | rev | cut -d":" -f1 | cut -d"-" -f2 | rev)     # could contain more than one :
-        scoreB=$(echo ${line} | rev | cut -d"-" -f1 | rev)                     # could contain more than one :
+        scoreA=$(echo ${line} | rev | cut -d":" -f1 | cut -d"-" -f2 | rev)                  # could contain more than one :
+        scoreB=$(echo ${line} | rev | cut -d"-" -f1 | rev)                                  # could contain more than one :
         
         if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "TeamA: '${teamA}' - TeamB: '${teamB}' | ScoreA: ${scoreA} - ScoreB: ${scoreB}" ; fi ;
 
@@ -181,13 +190,13 @@ results(){
         
         # if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n{TEAM VARIABLES IN ARRAYS}  Number of teams: ${#teamsNames[@]}\n" ; echo "$(paste <( for ((i=-1;i<=${#teamsNames[@]};i++)) ; do  if [ ${i} -lt 1 ] ; then echo "#" ; else echo -e "${i}." ; fi ; done ; ) <( echo "Teams(Rank) ----------- ${!rankScore[@]}" | tr " " "\n" ) <( echo "Rank ---- ${rankScore[@]}" | tr " " "\n" ) <( echo "Teams(ScoredGoals) ------------------ ${!scoredGoals[@]}" | tr " " "\n" ) <( echo "ScoredGoals ----------- ${scoredGoals[@]}" | tr " " "\n" ) <( echo "Teams(ConcededGoals) -------------------- ${!concededGoals[@]}" | tr " " "\n" ) <( echo "ConcededGoals ------------- ${concededGoals[@]}" | tr " " "\n" ) -d " " | column -t)" ; fi
 
-        #Team A win
+        # Team A win
         if [ "$(echo "${scoreA} > ${scoreB}" | bc -l)" -eq "1" ] ; then
             rankScore["${teamA}"]=$(echo "${rankScore["${teamA}"]} + 3" | bc)
-        #Team B win
+        # Team B win
         elif [ "$(echo "${scoreA} < ${scoreB}" | bc -l)" -eq "1" ] ; then
             rankScore["${teamB}"]=$(echo "${rankScore["${teamB}"]} + 3" | bc)
-        #
+        # Draw
         else
             rankScore["${teamA}"]=$(echo "${rankScore["${teamA}"]} + 1" | bc)
             rankScore["${teamB}"]=$(echo "${rankScore["${teamB}"]} + 1" | bc)
@@ -201,22 +210,22 @@ results(){
     done
     IFS=${OLD_IFS}
 
-    #DEBUG message
+    # DEBUG message
     if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "\n{TEAM VARIABLES IN ARRAYS}  Number of teams: ${#teamsNames[@]}" ; echo "$(paste <( for ((i=-1;i<=${#teamsNames[@]};i++)) ; do  if [ ${i} -lt 1 ] ; then echo "#" ; else echo -e "${i}." ; fi ; done ; ) <( echo "Teams(Rank) ----------- ${!rankScore[@]}" | tr " " "\n" ) <( echo "Rank ---- ${rankScore[@]}" | tr " " "\n" ) <( echo "Teams(ScoredGoals) ------------------ ${!scoredGoals[@]}" | tr " " "\n" ) <( echo "ScoredGoals ----------- ${scoredGoals[@]}" | tr " " "\n" ) <( echo "Teams(ConcededGoals) -------------------- ${!concededGoals[@]}" | tr " " "\n" ) <( echo "ConcededGoals ------------- ${concededGoals[@]}" | tr " " "\n" ) -d " " | column -t)" ; fi
 
-    calLines=""
+    outLines=""
     for ((i=0;i < ${#teamsNames[@]};i++)) ; do
-        #TODO sometimes \t does not work
+        # TODO: sometimes \t does not work in weird team names like this --> Team name: #kwM
         line="$(echo ${teamsNames[$i]} | tr "-" " ")\t${rankScore[${teamsNames[$i]}]}\t${scoredGoals[${teamsNames[$i]}]}-${concededGoals[${teamsNames[$i]}]}"
         if [ $i -lt $(( ${#teamsNames[@]} - 1 )) ] ; then line+="\n" ; fi
-        calLines+=${line}
+        outLines+=${line}
     done
 
-    #Print final result
+    # Sort, concatenate and print final results
     if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "\n{RESULTS}" ; fi ;
-    echo "$(paste <( for ((i=1;i<=${#teamsNames[@]};i++)) ; do  echo "${i}." ; done ;) <( echo -e ${calLines} | sort -t$'\t' -nk2,2r -k1,1) -d "\t")"
+    echo "$(paste <( for ((i=1;i<=${#teamsNames[@]};i++)) ; do  echo "${i}." ; done ;) <( echo -e ${outLines} | sort -t$'\t' -nk2,2r -k1,1) -d "\t")"
 
-    unset teamsNames ; unset rankScore ; unset scoredGoals ; unset concededGoals ;  #Delete each array
+    unset teamsNames ; unset rankScore ; unset scoredGoals ; unset concededGoals ;  # Delete each array
     return 0
 }
 
@@ -230,7 +239,7 @@ calc_and_print_results(){
     results $@
     local ERROR=$?
 
-    #Print results (Take into consideration some error cases)
+    # Print results (Take into consideration some error cases)
     if [ ${ERROR} -eq 0 ] ; then 
         true
     elif [ ${ERROR} -eq 10 ] ; then 
@@ -243,6 +252,8 @@ calc_and_print_results(){
         echo "FILES: ${1//" "/," "}: there is not read permission for at least one of the input files"
     elif [ ${ERROR} -eq 14 ] ; then 
         echo "FILES: ${1//" "/," "}: at least one of the files does not exist"
+    elif [ ${ERROR} -eq 15 ] ; then 
+        echo "FILE: $1, at least one of the files is not a regular file"
     else 
         echo "FILES: $1, unexpected error"
     fi   
@@ -265,7 +276,7 @@ usage() {
     echo "  -e                write stderrors in given file"
     echo "  -h                print this help menu and exit"   
     echo "  -o                write output in given file #TODO -is not working at the moment"
-    echo "  -q                disable errors reporting"
+    echo "  -q                enable errors reporting"
     echo 
     echo
     echo "Exit status:"
@@ -282,15 +293,16 @@ usage() {
     echo "   12 if file is too big,"
     echo "   13 if there is not read permission,"
     echo "   14 if file does not exist"
+    echo "   15 if this is not a regular file"
     echo 
     echo "Examples:"
     echo "   `basename ${0}` -e errorfile.txt inputfile.txt"
     echo "   `basename ${0}` -c inputfile.txt      # Check input's files format"
     echo "   `basename ${0}` -d -e errorfile.txt -o results.txt june_2019.txt july_2019.txt august_2019.txt"
-    echo "   `basename ${0}` input1.txt input2.txt input3.txt"
+    echo "   `basename ${0}` input1.txt input2.txt input3.txt   # Calculate ranking for all together"
     echo 
     echo "Implementation:"
-    echo "   version         `basename ${0}` 0.0.1"
+    echo "   version         `basename ${0}` ${VERSION}"
     echo "   author          Spyridakis Christos"
     echo "   copyright       Copyright (c) 2019 https://www.github.com/CSpyridakis/SDTSP"
     echo "   license         MIT License"
@@ -306,25 +318,25 @@ while getopts ":c:de:ho:q" opt ; do
         e)      ERRORS_FILE="${OPTARG}"                                                     ;;  
         h)      usage ; exit 0                                                              ;;  
         o)      OUTPUT_FILE="${OPTARG}"                                                     ;;  
-        q)      QUIET=${TRUE}                                                               ;;    
+        q)      QUIET=${FALSE}                                                              ;;    
         :)      QUIET=${FALSE} ; error "Missing argument for -$OPTARG option! Execute: \$ ${0} -h, in order to see properly usage." ; exit 1  ;;
-        \?)     QUIET=${FALSE} ; error "Invalid option: -$OPTARG. Execute: \$ ${0} -h, in order to see properly usage."              ; exit 2  ;;
+        \?)     QUIET=${FALSE} ; error "Invalid option: -$OPTARG. Execute: \$ ${0} -h, in order to see properly usage."             ; exit 2  ;;
     esac
 done
 if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "{DEBUG} - Bash version: ${BASH_VERSION}..." ; fi;
 if [ ! -z ${ERRORS_FILE} ] ; then echo -n "" > "${ERRORS_FILE}" ; fi ;
 
-#Remaining Arguments
-shift $(($OPTIND - 1))  #Move to the next args
-remainingArgs=$(echo $* | tr -s " " | tr "," " ") #Squeeze extra spaces and tranlate every comma to space. Remember valid input is also this: file1,file2,file3... 
+# Remaining Arguments
+shift $(($OPTIND - 1))  # Move to the next args
+remainingArgs=$(echo $* | tr -s " " | tr "," " ") # Squeeze extra spaces and tranlate every comma to space. Remember valid input is also this: file1,file2,file3... 
 if [ ${DEBUG} -eq ${TRUE} ] ; then echo "{DEBUG} - Remaining arguments are: |${remainingArgs}|" ; fi;
 
-#Check remaining input data if there is not extra flags
+# Check remaining input data if there is not extra flags
 if [ ! -z  "$(echo "${remainingArgs}" | grep -E " \-[a-zA-Z]{1,}")" ] ; then 
     QUIET=${FALSE}
     error "Please place OPTIONS before input files. Execute: \$ results -h, in order to see properly usage." 
     exit 1
 fi
 
-#Calculate and print results
+# Calculate and print results
 calc_and_print_results "${remainingArgs}"
