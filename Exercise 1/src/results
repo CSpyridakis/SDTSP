@@ -175,6 +175,7 @@ results(){
     if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "{TEAMS}" ; fi ;
     for line in ${inptText} ; do
 
+        # Replace spaces with dash on team names (use spaces as field separator for sort, etc...)
         teamA=$(echo ${line} | cut -d"-" -f1 | tr " " "-")                                  # teamA-{could contain :}:{Na-Nb}
         teamB=$(echo ${line} | cut -d"-" -f2 | rev | cut -d":" -f2- | rev | tr " " "-")     # {could contain :}-teamB:{Na-Nb} , for this reason i try to extract only the name by reverting string
         scoreA=$(echo ${line} | rev | cut -d":" -f1 | cut -d"-" -f2 | rev)                  # could contain more than one :
@@ -215,15 +216,14 @@ results(){
 
     outLines=""
     for ((i=0;i < ${#teamsNames[@]};i++)) ; do
-        # TODO: sometimes \t does not work in weird team names like this --> Team name: #kwM
-        line="$(echo ${teamsNames[$i]} | tr "-" " ")\t${rankScore[${teamsNames[$i]}]}\t${scoredGoals[${teamsNames[$i]}]}-${concededGoals[${teamsNames[$i]}]}"
+        line="${teamsNames[$i]} ${rankScore[${teamsNames[$i]}]} ${scoredGoals[${teamsNames[$i]}]}-${concededGoals[${teamsNames[$i]}]}"
         if [ $i -lt $(( ${#teamsNames[@]} - 1 )) ] ; then line+="\n" ; fi
         outLines+=${line}
     done
 
-    # Sort, concatenate and print final results
+    # Sort, concatenate and print final results (finally, i need to replace dash with spaces in team names)
     if [ ${DEBUG} -eq ${TRUE} ] ; then echo -e "\n{RESULTS}" ; fi ;
-    echo "$(paste <( for ((i=1;i<=${#teamsNames[@]};i++)) ; do  echo "${i}." ; done ;) <( echo -e ${outLines} | sort -t$'\t' -nk2,2r -k1,1) -d "\t")"
+    echo "$(paste <( for ((i=1;i<=${#teamsNames[@]};i++)) ; do  echo "${i}." ; done ;) <( echo -e ${outLines} | sort -t$' ' -nk2,2r -k1,1 | awk -F" " '{gsub("-", " ", $1)} {print $1"\t"$2"\t"$3}') -d "\t")"
 
     unset teamsNames ; unset rankScore ; unset scoredGoals ; unset concededGoals ;  # Delete each array
     return 0
