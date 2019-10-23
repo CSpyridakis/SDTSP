@@ -161,7 +161,8 @@ results(){
         if [ ${ERROR} -ne 0 ] ; then return ${ERROR}; fi
     done
 
-    inptText=$(cat "$@" | grep .)
+    # Concate input files
+    inptText=$(for i in $@ ; do cat $i ; echo "" ;  done | grep .) 
 
     unset teamsNames ; unset rankScore ; unset scoredGoals ; unset concededGoals ;  # Delete arrays, if already exist
 
