@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# tar zxvf LAB211?????.tar.gz
+
+cd tests/
+chmod -r ./regr/regr-notread
+chmod -r ./res/res-notread
+
+cd regr/
+echo -e "-----------------------------------------------------\n"
+../../src/regr regr1-n-moreinline  regr2-n-char  regr-notread  valregr1  valregr2  valregr3 ../empty notExist
+echo ;echo 
+
+echo -e "-----------------------------------------------------\n"
+../../src/regr valregr1  notExist
+echo ;echo 
+
+echo -e "-----------------------------------------------------\n"
+../../src/regr valregr2 ../empty valregr3 
+echo ;echo 
+
+
+echo "-----------------------------------------------------"
+
+
+
+cd ../res/
+
+
+for file in $(ls) ; do 
+    echo -e "-------------------- ${file} -------------------------\n"
+    ../../src/results ${file} 
+    echo ; echo 
+done
+
+echo -e "-------------------- notExist -------------------------\n"
+../../src/results notExist 
+echo ; echo 
+
+echo -e "-------------------- valres2-f1 valres2-f2 valres2-f3 -------------------------\n"
+../../src/results valres2-f1 valres2-f2 valres2-f3
+echo ; echo 
+
+echo -e "-------------------- valres2 -------------------------\n"
+../../src/results valres2
+echo ; echo 
+
+
+cd ..
+
+chmod +r ./regr/regr-notread
+chmod +r ./res/res-notread
+cd ..
