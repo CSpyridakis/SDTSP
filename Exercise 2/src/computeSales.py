@@ -5,7 +5,7 @@ ________________________________________________________________________________
 
     Authors : Zacharioudakis Nikolas, Spyridakis Christos
     Created Date : 13/11/2019
-    Last Updated : 18/11/2019
+    Last Updated : 17/11/2019
     Email : TODO: Nikola's e-mail , spyridakischristos@gmail.com
 
     Description :   Read repeatedly receipts containing products, that consumers bought from different stores,
@@ -43,31 +43,31 @@ ________________________________________________________________________________
                     - Has to exist, is regular file, is readable and is not empty (if one of them is violated
                     just continue and don't print anything - NOT EVEN '\n').
 
-                    - Each file has to have at least one valid receipt, surrounded by lines containing only
+                    [TODO] Each file has to have at least one valid receipt, surrounded by lines containing only
                     dash symbol of unknown length.
 
-                    - The number of lines and receipts that each file has, is not predefined. But program
+                    [TODO] The number of lines and receipts that each file has, is not predefined. But program
                     should be able to parse files containing hundreds of thousands of them easily, fast
                     and without memory waste.
 
                 * Acceptable Receipts:
-                    - Must begin with a line containing only dash symbol.
+                    [TODO] Must begin with a line containing only dash symbol.
 
-                    - TIN (ΑΦΜ) has to be presented and be a 10 digit number. Actually a 10 digit INTEGER
+                    [TODO] TIN (ΑΦΜ) has to be presented and be a 10 digit number. Actually a 10 digit INTEGER
                      WITHOUT fractional part.
 
-                    - Each receipt has to have at least on product in it.
+                    [TODO] Each receipt has to have at least on product in it.
 
-                    - The name of the product (ΟΝΟΜΑ_ΠΡΟΙΟΝ) must be a STRING. Quantity per product bought
+                    [TODO] The name of the product (ΟΝΟΜΑ_ΠΡΟΙΟΝ) must be a STRING. Quantity per product bought
                     (ΠΟΣΟΤΗΤΑ) must be an INTEGER number. Price of product per unit (ΤΙΜΗ_ΜΟΝΑΔΑΣ) and
                     total cost per product (ΣΥΝΟΛΙΚΗ_ΤΙΜΗ) could be FLOATING point numbers.
 
-                    - ΣΥΝΟΛΙΚΗ_ΤΙΜΗ of a product with name ΟΝΟΜΑ_ΠΡΟΙΟΝ has to be equal with ΣΥΝΟΛΙΚΗ_ΤΙΜΗ =
+                    [TODO] ΣΥΝΟΛΙΚΗ_ΤΙΜΗ of a product with name ΟΝΟΜΑ_ΠΡΟΙΟΝ has to be equal with ΣΥΝΟΛΙΚΗ_ΤΙΜΗ =
                     ΠΟΣΟΤΗΤΑ * ΤΙΜΗ_ΜΟΝΑΔΑΣ in order to be accepted.
 
-                    - Line spacing is unpredictable.
+                    [TODO] Line spacing is unpredictable.
 
-                    - Finally, total cost of all products per receipt (ΠΟΣΟ_ΜΕ_ΣΥΝΟΛΟ_ΑΠΟΔΕΙΞΗΣ) has to be
+                    [TODO] Finally, total cost of all products per receipt (ΠΟΣΟ_ΜΕ_ΣΥΝΟΛΟ_ΑΠΟΔΕΙΞΗΣ) has to be
                     appeared in the last line of the receipt be a FLOATING point number and equals with the
                     sum of all subtotals costs for each product (ΣΥΝΟΛΙΚΗ_ΤΙΜΗ).
 
@@ -78,6 +78,11 @@ ________________________________________________________________________________
 DEBUG = False
 TIME = False
 MEMORY = False
+
+# REGULAR EXPRESSIONS
+AFM_PATTERN = '^\s*ΑΦΜ\s*:\s*[0-9]{10,10}\s*$'      # ΑΦΜ: <10_digit_number>   <- Multiple white spaces
+PRODUCT_PATTERN = ''
+SYNOLO_PATTERN = ''
 
 
 def create_parser():
@@ -91,17 +96,17 @@ def create_parser():
     """
     version = '1.0.0'
 
-    description= 'Read repeatedly receipts containing products, that consumers bought from different stores,\n' + \
-                 'then print statistics for specific products or specific TINs (Tax Identification Numbers)\n' + \
-                 'of a store owner based on user input. Read program\'s inline documentation to find out input\n' + \
-                 'file\'s needed format'
+    description = 'Read repeatedly receipts containing products, that consumers bought from different stores,\n' + \
+                  'then print statistics for specific products or specific TINs (Tax Identification Numbers)\n' + \
+                  'of a store owner based on user input. Read program\'s inline documentation to find out input\n' + \
+                  'file\'s needed format'
 
     # TODO : ask Nikolas to add his github repo
-    epilog= 'Implementation:\n' + \
-            '  version: ' + version + '\n' + \
-            '  authors: Spyridakis Christos, Zacharioudakis Nikolas \n' + \
-            '  copyright (c) 2019 https://github.com/CSpyridakis/SDTSP \n' + \
-            '  license: MIT License'
+    epilog = 'Implementation:\n' + \
+             '  version: ' + version + '\n' + \
+             '  authors: Spyridakis Christos, Zacharioudakis Nikolas \n' + \
+             '  copyright (c) 2019 https://github.com/CSpyridakis/SDTSP \n' + \
+             '  license: MIT License'
 
     # Create parser, add arguments and return it, or raise exception if something is wrong
     try:
@@ -124,12 +129,20 @@ def calculate_time(func):
     :param func: function that decorates (you do not need to pass any argument)
     :return: actually nothing, just executed inner wrapper
     """
+
     def wrap(*args, **kwargs):
         start_timer = time.time()
         func(*args, **kwargs)
         stop_timer = time.time()
         t_time = round_up(stop_timer - start_timer)
-        if DEBUG or TIME: print('-' * 50 + '\nTime of execution: ' + t_time.__str__() + ' (sec) | ' + func.__name__)
+        iterations = 0  # TODO: fix it
+
+        if DEBUG or TIME:
+            print('-' * 50 +
+                  '\n{TIME} Function: ' + func.__name__ +
+                  ' | Time: ' + t_time.__str__() + ' (sec)' +
+                  ' | Iterations: ' + str(iterations))
+
     return wrap
 
 
@@ -160,8 +173,8 @@ def get_size(obj, seen=None):
     return size
 
 
-def human_size(bytes, units=[' bytes','KB','MB','GB','TB', 'PB', 'EB']):
-    return str(bytes) + units[0] if bytes < 1024 else human_size(bytes>>10, units[1:])
+def human_size(bytes, units=[' bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB']):
+    return str(bytes) + units[0] if bytes < 1024 else human_size(bytes >> 10, units[1:])
 
 
 def round_up(n, decimals=4):
@@ -181,7 +194,7 @@ def update_afm_receipts(new_receipt, afm):
         if key in receipts_dict[afm]["products"]:
             receipts_dict[afm]["products"][key]["amount"] += new_receipt[afm]["products"][key]["amount"]
             # TODO: check about cost per product
-            receipts_dict[afm]["products"][key]["total"] =\
+            receipts_dict[afm]["products"][key]["total"] = \
                 round_up(receipts_dict[afm]["products"][key]["total"] + new_receipt[afm]["products"][key]["total"])
         else:
             receipts_dict[afm]["products"][key] = {'amount': new_receipt[afm]["products"][key]["amount"],
@@ -201,14 +214,31 @@ def read_receipt(file):
     :param file: is the file contains the receipts
     :return: a receipt dictionary or 'end' if we have EOF
     """
+    try:
+        import re     # For regular expressions
+        REGS = True
+    except ImportError:
+        REGS = False
+
+
+    afm_pattern = re.compile(AFM_PATTERN)
+    product_pattern = re.compile(PRODUCT_PATTERN)
+    total_pattern = re.compile(SYNOLO_PATTERN)
+
     products = {}
-    # TODO: check if the first line is AFM (10 digit) else skip receipt
+
     ln = file.readline().upper()
-    if ln == '' or ln == '\n':        # checking for end of file
-        return 'end'
+    if ln == '' or ln == '\n':  # checking for end of file
+        return
+
+    # TODO : check what to do
+    elif afm_pattern.match(ln) is None:
+        print (ln)
+        pass
     else:
-        # TODO: Check that first argument of split option writes actually AFM and not something else
-        afm = eval(ln.strip().split(":").__getitem__(1))
+        afm = str(ln.strip().split(":").__getitem__(1))
+        print(afm)
+
     for l in file:
         l = l.upper()
         name = l.strip().split(":").__getitem__(0)
@@ -233,7 +263,7 @@ def read_receipt(file):
 
 
 @calculate_time
-def addNewFile(filename):
+def add_new_file(filename):
     """
     Insert receipt(s) in the system.
 
@@ -253,21 +283,21 @@ def addNewFile(filename):
                 #     break
 
                 new_receipt = read_receipt(file)
-                if new_receipt is 'end':
-                    break
+                if new_receipt is None: break
+
                 afm = list(new_receipt.keys())[0]
                 if afm in receipts_dict:
                     update_afm_receipts(new_receipt, afm)
                 else:
                     receipts_dict.update(new_receipt)
     except Exception:
-        if DEBUG: print("There is something wrong with that file (I can not open it!)")
+        if DEBUG: print("{ADDNEWFILE} - There is something wrong with that file (I can not open it!)")
         pass
     return
 
 
 @calculate_time
-def giveStatisticsForProduct(prod):
+def give_statistics_for_product(prod):
     """
     Print statistics for a specific product
 
@@ -284,7 +314,7 @@ def giveStatisticsForProduct(prod):
 
 # TODO: check validity of AFM (10 digits)
 @calculate_time
-def giveStatisticsForAFM(afm):
+def give_statistics_for_afm(afm):
     """
     Print statistics for a specific AFM
 
@@ -300,18 +330,17 @@ def giveStatisticsForAFM(afm):
         print(prods + " " + data[prods]["amount"].__str__())
 
 
-
 #
 # ________________________________________________ MAIN ________________________________________________
 #
 if __name__ == '__main__':
     menu = 'Give your preference: (1: read new input file, 2: print statistics for a specific product, ' + \
-    '3: print statistics for a specific AFM, 4: exit the program)\n'
+           '3: print statistics for a specific AFM, 4: exit the program)\n'
 
     # Read input arguments. In case of error, assume that there are not input flags and just execute
     # program as needed.
     try:
-        import argparse, sys, time, math                      # For DEBUG, TIME and MEMORY usage
+        import argparse, sys, time, math  # For DEBUG, TIME and MEMORY usage
 
         _parser = create_parser()
         _args = _parser.parse_args()
@@ -329,21 +358,21 @@ if __name__ == '__main__':
     # Initialize an empty dictionary for receipts, then give menu until exit option is selected
     receipts_dict = {}
     while True:
-        if DEBUG or MEMORY or TIME: print('_'*100)
+        if DEBUG or MEMORY or TIME: print('_' * 100)
         try:
-            user = eval(input(menu))
-        except (SyntaxError, NameError):
+            user = int(input(menu))  # Only 1, 2, 3 and 4 are valid -> 1.0, 2.00, two, 8, -1, etc... are not!
+        except Exception:
             user = 0
 
         # Menu options
         if user == 1:
-            addNewFile(input("Give File name:"))
-            if DEBUG or MEMORY: print('Memory size of dictionary: ' + human_size(10000))   # TODO: change memory size to dictionary
+            add_new_file(input("Give File name: "))
+            if DEBUG or MEMORY:
+                print('{MEMORY} Memory size of dictionary: ' + human_size(10000))  # TODO: execute for dictionary
         elif user == 2:
-            giveStatisticsForProduct(input("Give a Product name:"))
+            give_statistics_for_product(input("Give a Product name: "))
         elif user == 3:
-            giveStatisticsForAFM(input("Give an AFM:"))
+            give_statistics_for_afm(input("Give an AFM: "))
         elif user == 4:
             # print("Goodbye")
             exit(0)
-
