@@ -283,10 +283,12 @@ def read_receipt(file):
                 total = l.upper().strip().split(":").__getitem__(1)
                 if float(total) == round(float(subtotal), 2):
                     if DEBUG: print('{TOTAL} - Total: ' + str(total))
-                    # l = file.readline()
-                    # if not l: return
-                    # if set(l.strip()).issubset("-"):
-                    return {afm: {"products": products, "total": float(total)}}         # TODO: go back one line
+                    l = file.readline()
+                    if not l: return
+                    if set(l.strip()).issubset("-"):
+                        LAST_POS = file.tell()
+                        if DEBUG : print("{VALID-RECEIPT !!!}")
+                        return [{afm: {"products": products, "total": float(total)}}, LAST_POS]
                 else:
                     if DEBUG: print('{WRONG-TOTAL} - Total: ' + str(total))
                 return
@@ -320,8 +322,10 @@ def add_new_file(filename):
                 if not l: break
                 elif set(l.strip()).issubset("-"):
                     FIRST = True
-                    new_receipt = read_receipt(file)
-                    if new_receipt is None: continue        # If receipt is not valid then continue to rest of file
+                    receipt = read_receipt(file)
+                    if receipt is None: continue        # If receipt is not valid then continue to rest of file
+                    [new_receipt, last_poss] = list(receipt)
+                    file.seek(last_poss-1)
 
                     afm = list(new_receipt.keys())[0]
                     if afm in receipts_dict:
