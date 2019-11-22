@@ -51,23 +51,23 @@ ________________________________________________________________________________
                     and without memory waste.
 
                 * Acceptable Receipts:
-                    [TODO] Must begin with a line containing only dash symbol.
+                    - Must begin with a line containing only dash symbol.
 
-                    [TODO] TIN (ΑΦΜ) has to be presented and be a 10 digit number. Actually a 10 digit INTEGER
+                    - TIN (ΑΦΜ) has to be presented and be a 10 digit number. Actually a 10 digit INTEGER
                      WITHOUT fractional part.
 
-                    [TODO] Each receipt has to have at least on product in it.
+                    - Each receipt has to have at least on product in it.
 
-                    [TODO] The name of the product (ΟΝΟΜΑ_ΠΡΟΙΟΝ) must be a STRING. Quantity per product bought
+                    - The name of the product (ΟΝΟΜΑ_ΠΡΟΙΟΝ) must be a STRING. Quantity per product bought
                     (ΠΟΣΟΤΗΤΑ) must be an INTEGER number. Price of product per unit (ΤΙΜΗ_ΜΟΝΑΔΑΣ) and
                     total cost per product (ΣΥΝΟΛΙΚΗ_ΤΙΜΗ) could be FLOATING point numbers.
 
-                    [TODO] ΣΥΝΟΛΙΚΗ_ΤΙΜΗ of a product with name ΟΝΟΜΑ_ΠΡΟΙΟΝ has to be equal with ΣΥΝΟΛΙΚΗ_ΤΙΜΗ =
+                    - ΣΥΝΟΛΙΚΗ_ΤΙΜΗ of a product with name ΟΝΟΜΑ_ΠΡΟΙΟΝ has to be equal with ΣΥΝΟΛΙΚΗ_ΤΙΜΗ =
                     ΠΟΣΟΤΗΤΑ * ΤΙΜΗ_ΜΟΝΑΔΑΣ in order to be accepted.
 
-                    [TODO] Line spacing is unpredictable.
+                    - Line spacing is unpredictable.
 
-                    [TODO] Finally, total cost of all products per receipt (ΠΟΣΟ_ΜΕ_ΣΥΝΟΛΟ_ΑΠΟΔΕΙΞΗΣ) has to be
+                    - Finally, total cost of all products per receipt (ΠΟΣΟ_ΜΕ_ΣΥΝΟΛΟ_ΑΠΟΔΕΙΞΗΣ) has to be
                     appeared in the last line of the receipt be a FLOATING point number and equals with the
                     sum of all subtotals costs for each product (ΣΥΝΟΛΙΚΗ_ΤΙΜΗ).
 
@@ -219,8 +219,8 @@ def product_data(ln):
         if DEBUG: print('{PRODUCT-INFO} - Name:' + str(name) + ' | Quantity: ' + str(amount) + ' | Cost: ' + str(cost) + ' | Sum: ' + str(sum))
         return [name, amount, cost, sum]
     else:
-        if DEBUG: print('{NOT-VALID-PRODUCT} ' + '- Product name: ' + str(name) + ' | Quantity: ' + str(amount) + ' | Cost: ' + str(cost) + ' | Sum: ' + str(sum) + '  --- Tot: ' + str(float(amount * cost)) + '  --- [' + str(ln) + ']')
-    return
+        if DEBUG: print('{NOT-VALID-PRODUCT} ' + '- Product name: ' + str(name) + ' | Quantity: ' + str(amount) + ' | Cost: ' + str(cost) + ' | Sum: ' + str(sum) + '  | Total: ' + str(float(amount * cost)) + '  | ~ [' + str(ln) + ']')
+        return
 
 def read_receipt(file):
     """
@@ -251,7 +251,10 @@ def read_receipt(file):
         elif product_pattern.match(ln) is None:
             if DEBUG: print('{PRODUCT-WRONG-PATTERN} - ' + str(ln))
             return
-        [name, amount, cost, sum] = product_data(ln.upper())
+        product = product_data(ln.upper())
+        if product is None: return
+        [name, amount, cost, sum] = tuple(product)
+
         subtotal += sum
         # Add first product
         products[name] = {'amount': amount, 'cost': cost, 'total': sum}
@@ -264,7 +267,9 @@ def read_receipt(file):
                 if DEBUG: print('{PATTERN-ERROR} - ' + str(l))
                 return
             elif product_pattern.match(l):
-                [name, amount, cost, sum] = product_data(l.upper())
+                product = product_data(l.upper())
+                if product is None: return
+                [name, amount, cost, sum] = tuple(product)
                 subtotal += sum
 
                 # Add product
@@ -278,10 +283,10 @@ def read_receipt(file):
                 total = l.upper().strip().split(":").__getitem__(1)
                 if float(total) == round(float(subtotal), 2):
                     if DEBUG: print('{TOTAL} - Total: ' + str(total))
-                    l = file.readline()
-                    if not l: return
-                    if set(l.strip()).issubset("-"):
-                        return {afm: {"products": products, "total": float(total)}}         # TODO: go back one line
+                    # l = file.readline()
+                    # if not l: return
+                    # if set(l.strip()).issubset("-"):
+                    return {afm: {"products": products, "total": float(total)}}         # TODO: go back one line
                 else:
                     if DEBUG: print('{WRONG-TOTAL} - Total: ' + str(total))
                 return
