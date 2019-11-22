@@ -240,7 +240,7 @@ def read_receipt(file):
         ln = file.readline()
         if not ln: return
         elif afm_pattern.match(ln) is None:
-            if DEBUG: print('{AFM-WRONG-PATTERN} - ' + str(ln))
+            if DEBUG: print('{AFM-WRONG-PATTERN} - ' + str(ln).strip())
             return
         afm = str(ln.upper().strip().split(":").__getitem__(1))
         if DEBUG: print('-' * 50 + '\n{AFM} - New Receipt, AFM: ' + afm)
@@ -249,11 +249,11 @@ def read_receipt(file):
         ln = file.readline()
         if not ln: return
         elif product_pattern.match(ln) is None:
-            if DEBUG: print('{PRODUCT-WRONG-PATTERN} - ' + str(ln))
+            if DEBUG: print('{PRODUCT-WRONG-PATTERN} - ' + str(ln).strip())
             return
         product = product_data(ln.upper())
         if product is None: return
-        [name, amount, cost, sum] = tuple(product)
+        [name, amount, cost, sum] = list(product)
 
         subtotal += sum
         # Add first product
@@ -264,12 +264,12 @@ def read_receipt(file):
             if not l: return
 
             if product_pattern.match(l) is None and total_pattern.match(l) is None:
-                if DEBUG: print('{PATTERN-ERROR} - ' + str(l))
+                if DEBUG: print('{PATTERN-ERROR} - ' + str(l).strip())
                 return
             elif product_pattern.match(l):
                 product = product_data(l.upper())
                 if product is None: return
-                [name, amount, cost, sum] = tuple(product)
+                [name, amount, cost, sum] = list(product)
                 subtotal += sum
 
                 # Add product
@@ -312,12 +312,14 @@ def add_new_file(filename):
     :param: filename, the path of the desired file to add for next calculations
 
     """
+    FIRST = True
     try:
         with open(filename, "r", encoding='utf-8') as file:
             while True:
                 l = file.readline()
                 if not l: break
                 elif set(l.strip()).issubset("-"):
+                    FIRST = True
                     new_receipt = read_receipt(file)
                     if new_receipt is None: continue        # If receipt is not valid then continue to rest of file
 
@@ -327,11 +329,11 @@ def add_new_file(filename):
                     else:
                         receipts_dict.update(new_receipt)
                 else:
-                    # if DEBUG: print("{DASH-LINE-ERROR}")
-                    pass
+                    if DEBUG and FIRST: print('-' * 50 + "\n{DASH-LINE-ERROR}")
+                    FIRST = False
+
     except Exception:
         if DEBUG: print("{ADDNEWFILE} - There is something wrong with that file (I can not open it!)")
-        pass
     return
 
 
