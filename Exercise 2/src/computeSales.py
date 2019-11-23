@@ -5,7 +5,7 @@ ________________________________________________________________________________
 
     Authors : Zacharioudakis Nikolas, Spyridakis Christos
     Created Date : 13/11/2019
-    Last Updated : 17/11/2019
+    Last Updated : 23/11/2019
     Email : zaharioudakis@yahoo.com , spyridakischristos@gmail.com
 
     Description :   Read repeatedly receipts containing products, that consumers bought from different stores,
@@ -43,18 +43,17 @@ ________________________________________________________________________________
                     - Has to exist, is regular file, is readable and is not empty (if one of them is violated
                     just continue and don't print anything - NOT EVEN '\n').
 
-                    [TODO] Each file has to have at least one valid receipt, surrounded by lines containing only
+                    - Each file has to have at least one valid receipt, surrounded by lines containing only
                     dash symbol of unknown length.
 
-                    [TODO] The number of lines and receipts that each file has, is not predefined. But program
+                    - The number of lines and receipts that each file has, is not predefined. But program
                     should be able to parse files containing hundreds of thousands of them easily, fast
                     and without memory waste.
 
                 * Acceptable Receipts:
                     - Must begin with a line containing only dash symbol.
 
-                    - TIN (ΑΦΜ) has to be presented and be a 10 digit number. Actually a 10 digit INTEGER
-                     WITHOUT fractional part.
+                    - TIN (ΑΦΜ) has to be presented and be a 10 digit number.
 
                     - Each receipt has to have at least on product in it.
 
@@ -68,26 +67,32 @@ ________________________________________________________________________________
                     - Line spacing is unpredictable.
 
                     - Finally, total cost of all products per receipt (ΠΟΣΟ_ΜΕ_ΣΥΝΟΛΟ_ΑΠΟΔΕΙΞΗΣ) has to be
-                    appeared in the last line of the receipt be a FLOATING point number and equals with the
+                    appeared in the last line of the receipt, be a FLOATING point number and equals with the
                     sum of all subtotals costs for each product (ΣΥΝΟΛΙΚΗ_ΤΙΜΗ).
+
+                    - Must end with a line containing only dash symbol.
 
 _______________________________________________________________________________________________________
 '''
+
+import argparse
+import os.path
+import re
+import sys
+import time
+
+# REGEXES
+AFM_PATTERN = '^\s*ΑΦΜ\s*:\s*[0-9]{10}\s*$'
+PRODUCT_PATTERN = '^\s*[Α-ΩA-Z_]+\s*:\s*[0-9]+\s+[0-9]+[.]?[0-9]+\s+[0-9]+[.]?[0-9]+\s*$'
+SYNOLO_PATTERN = '^\s*ΣΥΝΟΛΟ\s*:\s*[0-9]*[.]?[0-9]+\s*$'
+SPLIT_RECEIPT = '^[-]+$'
 
 # Auxiliary variables
 DEBUG = False
 TIME = False
 MEMORY = False
-
-# REGULAR EXPRESSIONS
-INT_NUMBER='[1-9][0-9]*'
-FLOAT_NUMBER='([0-9]+[\.,]?|[0-9]*[\.,][0-9]+)'                 # TODO: comma or full-stop separator
-PRODUCT_NAME='[^\s\d\!\#\$\%\&\'\*\+\-\.\^\_\`\|\~\:]+'         # TODO: Re-check this
-
-AFM_PATTERN = '^\s*ΑΦΜ\s*:\s*[0-9]{10,10}\s*$'                  # ΑΦΜ: <10_digit_number>   <- Multiple white spaces
-PRODUCT_PATTERN = '^\s*' + PRODUCT_NAME + '\s*:\s*' + INT_NUMBER + '\s+' + FLOAT_NUMBER + '\s+' + FLOAT_NUMBER + '\s*$'
-SYNOLO_PATTERN = '^\s*ΣΥΝΟΛΟ\s*:\s*' + FLOAT_NUMBER + '\s*$'
-
+PRODUCTS = False
+VALID = False
 
 
 def create_parser():
@@ -99,7 +104,7 @@ def create_parser():
 
         :return: parser that created
     """
-    version = '1.0.0'
+    version = '2.0.0'
 
     description = 'Read repeatedly receipts containing products, that consumers bought from different stores,\n' + \
                   'then print statistics for specific products or specific TINs (Tax Identification Numbers)\n' + \
@@ -118,7 +123,10 @@ def create_parser():
         version_message = sys.argv[0] + ' ' + version
         parser = argparse.ArgumentParser(prog=program_name, description=description, epilog=epilog,
                                          formatter_class=argparse.RawDescriptionHelpFormatter)
+        parser.add_argument('-c', '--correct', dest="VALID", action="store_true",
+                            help='display when a product is valid')
         parser.add_argument('-d', '--debug', dest="DEBUG", action="store_true", help='enable debug mode')
+        parser.add_argument('-p', '--products', dest="PRODUCTS", action="store_true", help='in insertion show products')
         parser.add_argument('-t', '--time', dest="TIME", action="store_true", help='display execution time per request')
         parser.add_argument('-m', '--memory', dest="MEMORY", action="store_true", help='display memory usage')
         parser.add_argument('-v', '--version', action='version', version=version_message)
@@ -138,207 +146,118 @@ def calculate_time(func):
         start_timer = time.time()
         func(*args, **kwargs)
         stop_timer = time.time()
-        t_time = round_up(stop_timer - start_timer)
+        t_time = round((stop_timer - start_timer), 10)
         iterations = 0  # TODO: fix it
 
         if DEBUG or TIME:
             print('-' * 50 +
                   '\n{TIME} Function: ' + func.__name__ +
-                  ' | Time: ' + t_time.__str__() + ' (sec)' +
-                  ' | Iterations: ' + str(iterations))
+                  ' | Time: ' + t_time.__str__() + ' (sec)')
+            # + ' | Iterations: ' + str(iterations))
 
     return wrap
-
-
-def get_size(obj, seen=None):
-    """
-    Recursively finds size of objects
-
-    :author: this function was initially developed by bosswissam
-
-    :see: https://gist.github.com/bosswissam/a369b7a31d9dcab46b4a034be7d263b2#file-pysize-py
-    """
-    size = sys.getsizeof(obj)
-    if seen is None:
-        seen = set()
-    obj_id = id(obj)
-    if obj_id in seen:
-        return 0
-    # Important mark as seen *before* entering recursion to gracefully handle
-    # self-referential objects
-    seen.add(obj_id)
-    if isinstance(obj, dict):
-        size += sum([get_size(v, seen) for v in obj.values()])
-        size += sum([get_size(k, seen) for k in obj.keys()])
-    elif hasattr(obj, '__dict__'):
-        size += get_size(obj.__dict__, seen)
-    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
-        size += sum([get_size(i, seen) for i in obj])
-    return size
-
-
-def human_size(bytes, units=[' bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB']):
-    return str(bytes) + units[0] if bytes < 1024 else human_size(bytes >> 10, units[1:])
-
-
-def round_up(n, decimals=4):
-    """
-    round up number in k decimal places
-
-    :param: time of execution or other real number
-
-    :return: rounded up result using k decimal places (by default is 4)
-    """
-    multiplier = 10 ** decimals
-    return math.ceil(n * multiplier) / multiplier
 
 
 def update_afm_receipts(new_receipt, afm):
     for key in new_receipt[afm]["products"]:
         if key in receipts_dict[afm]["products"]:
             receipts_dict[afm]["products"][key]["amount"] += new_receipt[afm]["products"][key]["amount"]
-            # TODO: check about cost per product
             receipts_dict[afm]["products"][key]["total"] = \
-                round_up(receipts_dict[afm]["products"][key]["total"] + new_receipt[afm]["products"][key]["total"])
+                round((receipts_dict[afm]["products"][key]["total"] + new_receipt[afm]["products"][key]["total"]), 2)
         else:
             receipts_dict[afm]["products"][key] = {'amount': new_receipt[afm]["products"][key]["amount"],
-                                                   'cost': new_receipt[afm]["products"][key]["cost"],
                                                    'total': new_receipt[afm]["products"][key]["total"]}
+    receipts_dict[afm]["total"] = round((receipts_dict[afm]["total"] + new_receipt[afm]["total"]), 2)
 
-    receipts_dict[afm]["total"] = round_up(receipts_dict[afm]["total"] + new_receipt[afm]["total"])
 
-def product_data(ln):
-    ln = ln.strip()
-    name = str(ln.strip().split(":").__getitem__(0))
-    spec = str(ln.strip().split(":").__getitem__(1))
-    amount = int(spec.strip().split().__getitem__(0))
-    cost = float(spec.strip().split().__getitem__(1))
-    sum = float(spec.strip().split().__getitem__(2))
-
-    if sum == round(float(amount * cost),2):
-        if DEBUG: print('{PRODUCT-INFO} - Name:' + str(name) + ' | Quantity: ' + str(amount) + ' | Cost: ' + str(cost) + ' | Sum: ' + str(sum))
-        return [name, amount, cost, sum]
-    else:
-        if DEBUG: print('{NOT-VALID-PRODUCT} ' + '- Product name: ' + str(name) + ' | Quantity: ' + str(amount) + ' | Cost: ' + str(cost) + ' | Sum: ' + str(sum) + '  | Total: ' + str(float(amount * cost)) + '  | ~ [' + str(ln) + ']')
-        return
-
-def read_receipt(file):
+@calculate_time
+def add_new_file(filename):
     """
      reads only one receipt of the file at a time.
      Its return condition is the last line of the receipt "ΣΥΝΟΛΟ".
      So if we want to read all receipts of the file we should call 'read_receipt()' in a loop until
      returns 'end'.
 
-    :param file: is the file contains the receipts
+    :param filename: is the file contains the receipts
     :return: a receipt dictionary or 'end' if we have EOF
     """
-    products = {}
-    subtotal = 0.0
-
-    try:
-        # Read AFM
+    if DEBUG: print('#' * 30 + '  ADD NEW FILE  ' + '#' * 30)
+    with open(filename, "r", encoding='utf-8') as file:
         ln = file.readline()
-        if not ln: return
-        elif afm_pattern.match(ln) is None:
-            if DEBUG: print('{AFM-WRONG-PATTERN} - ' + str(ln).strip())
-            return
-        afm = str(ln.upper().strip().split(":").__getitem__(1))
-        if DEBUG: print('-' * 50 + '\n{AFM} - New Receipt, AFM: ' + afm)
-
-        # Read first product
-        ln = file.readline()
-        if not ln: return
-        elif product_pattern.match(ln) is None:
-            if DEBUG: print('{PRODUCT-WRONG-PATTERN} - ' + str(ln).strip())
-            return
-        product = product_data(ln.upper())
-        if product is None: return
-        [name, amount, cost, sum] = list(product)
-
-        subtotal += sum
-        # Add first product
-        products[name] = {'amount': amount, 'cost': cost, 'total': sum}
-
         while True:
-            l = file.readline()
-            if not l: return
+            # Read next line
+            if not ln: return  # If END of file return
 
-            if product_pattern.match(l) is None and total_pattern.match(l) is None:
-                if DEBUG: print('{PATTERN-ERROR} - ' + str(l).strip())
-                return
-            elif product_pattern.match(l):
-                product = product_data(l.upper())
-                if product is None: return
-                [name, amount, cost, sum] = list(product)
-                subtotal += sum
+            if dash_pattern.match(ln.strip()):  # Dash line PATTERN
+                ln = file.readline().upper()  # Read next line
 
-                # Add product
-                if name in products:
-                    products[name]["amount"] += amount
-                    products[name]["cost"] = cost                       # TODO: check about cost per product
-                    products[name]["total"] = round_up(products[name]["total"] + sum)
-                else:
-                    products[name] = {'amount': amount, 'cost': cost, 'total': sum}
-            elif total_pattern.match(l):
-                total = l.upper().strip().split(":").__getitem__(1)
-                if float(total) == round(float(subtotal), 2):
-                    if DEBUG: print('{TOTAL} - Total: ' + str(total))
-                    l = file.readline()
-                    if not l: return
-                    if set(l.strip()).issubset("-"):
-                        LAST_POS = file.tell()
-                        if DEBUG : print("{VALID-RECEIPT !!!}")
-                        return [{afm: {"products": products, "total": float(total)}}, LAST_POS]
-                else:
-                    if DEBUG: print('{WRONG-TOTAL} - Total: ' + str(total))
-                return
-    except ImportError:
-        pass
-        #TODO: Import error case
+                if afm_pattern.match(ln) is None:  # AFM PATTERN check
+                    if ln and DEBUG: print('-' * 50 + '\n{AFM-WRONG-PATTERN} - ' + str(ln).strip())
+                    continue  # Wrong AFM PATTERN
 
-    #
-    #     # if the product already exists in the dictionary then add the info in the existent value
-    #     # else add new key-value in the dictionary
+                afm = str(ln.strip().split(":").__getitem__(1).strip())  # Save AFM
+                if DEBUG: print('-' * 50 + '\n{AFM} - New Receipt, AFM: ' + str(afm))
 
+                products = {}  # Initialize products dict
+                p_total = 0.0  # Initialize receipt total
+                for ln in file:
+                    ln = ln.upper()
+                    # TODO : is second strip necessary?
+                    if product_pattern.match(ln) is not None:  # Product PATTERN check
 
+                        name = str(ln.strip().split(":").__getitem__(0).strip())  # Product's name
+                        spec = str(ln.strip().split(":").__getitem__(1))
+                        amount = int(spec.strip().split().__getitem__(0).strip())  # Product's quantity
+                        cost = float(spec.strip().split().__getitem__(1).strip())  # Product's cost per unit
+                        total = float(spec.strip().split().__getitem__(2).strip())  # Product's total cost
 
-@calculate_time
-def add_new_file(filename):
-    """
-    Insert receipt(s) in the system.
+                        # checking if amount*cost per product equals product's total
+                        if round((amount * cost), 2) != total:
+                            if DEBUG: print(
+                                '{SUM-ERROR} - Total: ' + str(total) + ' != ' + ' (' + str(amount) + ' * ' + str(
+                                    cost) + ') = ' + str(round((amount * cost), 2)))
+                            break
+                        if PRODUCTS: print(
+                            '{PRODUCT-INFO} - Name: ' + str(name) + ' | Quantity: ' + str(amount) + ' | Cost: ' + str(
+                                cost) + ' | Sum: ' + str(total))
 
-    When user presses 1, the file name is being ask.
-    If the file name is valid, the data is being appended
-    to the previously inserted file data.
+                        # Get the subtotal of the receipt products
+                        p_total = round(p_total + total, 2)
 
-    :param: filename, the path of the desired file to add for next calculations
+                        # if the product already exists in the dictionary then add the info in the existent value
+                        # else add new key-value in the dictionary
+                        if name in products:
+                            products[name]["amount"] += amount
+                            products[name]["total"] = round(products[name]["total"] + total, 2)
+                        else:
+                            products[name] = {'amount': amount, 'total': total}
 
-    """
-    FIRST = True
-    try:
-        with open(filename, "r", encoding='utf-8') as file:
-            while True:
-                l = file.readline()
-                if not l: break
-                elif set(l.strip()).issubset("-"):
-                    FIRST = True
-                    receipt = read_receipt(file)
-                    if receipt is None: continue        # If receipt is not valid then continue to rest of file
-                    [new_receipt, last_poss] = list(receipt)
-                    file.seek(last_poss-1)
+                    elif total_pattern.match(ln) is not None:  # Total PATTERN check
+                        rec_total = float(ln.strip().split(":").__getitem__(1).strip())  # Save total cost
 
-                    afm = list(new_receipt.keys())[0]
-                    if afm in receipts_dict:
-                        update_afm_receipts(new_receipt, afm)
+                        if not bool(products) or p_total != float(rec_total):  # Empty receipt or total != subtotal
+                            if DEBUG: print('{WRONG-TOTAL} - Total: ' + str(p_total))
+                            break
+                        if DEBUG: print('{TOTAL} - Total: ' + str(rec_total))
+
+                        ln = file.readline()  # Read next line
+
+                        if dash_pattern.match(ln.strip()):  # Dash line
+                            if VALID: print("{VALID-RECEIPT !!!}")
+                            if afm in receipts_dict:
+                                update_afm_receipts({afm: {"products": products, "total": float(rec_total)}}, afm)
+                            else:
+                                receipts_dict.update({afm: {"products": products, "total": float(rec_total)}})
+                            break
+                        else:
+                            if DEBUG: print("{LAST-DASH-LINE-ERROR}")
+                            break
                     else:
-                        receipts_dict.update(new_receipt)
-                else:
-                    if DEBUG and FIRST: print('-' * 50 + "\n{DASH-LINE-ERROR}")
-                    FIRST = False
-
-    except Exception:
-        if DEBUG: print("{ADDNEWFILE} - There is something wrong with that file (I can not open it!)")
-    return
+                        if DEBUG: print('{PATTERN-ERROR} - ' + str(ln).strip())
+                        break
+            else:
+                ln = file.readline()
+                continue
 
 
 @calculate_time
@@ -357,7 +276,6 @@ def give_statistics_for_product(prod):
             print(afm.__str__() + " " + receipts_dict[afm]["products"][prod]["total"].__str__())
 
 
-# TODO: check validity of AFM (10 digits)
 @calculate_time
 def give_statistics_for_afm(afm):
     """
@@ -368,62 +286,65 @@ def give_statistics_for_afm(afm):
     be in ASCENDING ORDER by product name.
 
     """
-    data = receipts_dict.get(eval(afm), 'None')
-
+    data = receipts_dict.get(eval(afm))
+    if data is None:
+        return
     data = data["products"]
     for prods in sorted(data.keys()):
         print(prods + " " + data[prods]["amount"].__str__())
+
+
+def print_menu():
+    print("Give your preference: (", end='')
+    print("1: read new input file, ", end='')
+    print("2: print statistics for a specific product, ", end='')
+    print("3: print statistics for a specific AFM, ", end='')
+    print("4: exit the program", end='')
+    print(")")
 
 
 #
 # ________________________________________________ MAIN ________________________________________________
 #
 if __name__ == '__main__':
-    menu = 'Give your preference: (1: read new input file, 2: print statistics for a specific product, ' + \
-           '3: print statistics for a specific AFM, 4: exit the program)\n'
+    _parser = create_parser()
+    _args = _parser.parse_args()
 
-    # Read input arguments. In case of error, assume that there are not input flags and just execute
-    # program as needed.
-    try:
-        import argparse, sys, time, math  # For DEBUG, TIME and MEMORY usage
+    # Debugging messages "Defines"
+    DEBUG = _args.DEBUG
+    TIME = _args.TIME
+    MEMORY = _args.MEMORY
+    PRODUCTS = _args.PRODUCTS
+    VALID = _args.VALID
 
-        _parser = create_parser()
-        _args = _parser.parse_args()
+    if DEBUG: print(_args)
+    afm_pattern = re.compile(AFM_PATTERN)
+    product_pattern = re.compile(PRODUCT_PATTERN)
+    total_pattern = re.compile(SYNOLO_PATTERN)
+    dash_pattern = re.compile(SPLIT_RECEIPT)
 
-        # Debugging messages "Defines"
-        DEBUG = _args.DEBUG
-        TIME = _args.TIME
-        MEMORY = _args.MEMORY
-
-        if DEBUG: print(_args)
-
-        import re  # For regular expressions
-        afm_pattern = re.compile(AFM_PATTERN)
-        product_pattern = re.compile(PRODUCT_PATTERN)
-        total_pattern = re.compile(SYNOLO_PATTERN)
-        REGS = True
-    except Exception as e:
-        # print(e)
-        pass
-
-    # Initialize an empty dictionary for receipts, then give menu until exit option is selected
     receipts_dict = {}
     while True:
         if DEBUG or MEMORY or TIME: print('_' * 100)
+        print_menu()
         try:
-            user = str(input(menu))  # Only 1, 2, 3 and 4 are valid -> 1.0, 2.00, two, 8, -1, +2, etc... are not!
+            # Only 1, 2, 3 and 4 are valid -> 1.0, 2.00, two, 8, -1, +2, etc... are not!
+            user = input().__str__()
         except Exception:
             user = 0
 
-        # Menu options
         if user == '1':
-            add_new_file(input("Give File name: "))
-            if DEBUG or MEMORY:
-                print('{MEMORY} Memory size of dictionary: ' + human_size(10000))  # TODO: execute for dictionary
+            f_name = input("Give File name: ").__str__()
+            try:
+                add_new_file(f_name)
+            except Exception:
+                pass
         elif user == '2':
-            give_statistics_for_product(input("Give a Product name: "))
+            give_statistics_for_product(input("Give a product name: ").__str__().upper())
         elif user == '3':
-            give_statistics_for_afm(input("Give an AFM: "))
+            afm = input("Give an AFM: ").__str__()
+            if re.match("^[0-9]{10}$", afm) is not None:
+                give_statistics_for_afm(afm)
         elif user == '4':
             # print("Goodbye")
             exit(0)
