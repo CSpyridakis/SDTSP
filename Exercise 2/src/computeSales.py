@@ -86,7 +86,7 @@ COST = '(([0-9]+.[0-9]+)|(' + INT_NUM + '))' # TODO: Floating poing number like 
 
 # REGEXES
 AFM_PATTERN = '^\s*ΑΦΜ\s*:\s*' + AFM + '\s*$'
-PRODUCT_PATTERN = '^\s*[Α-ΩA-Z_]+\s*:\s*' + INT_NUM + '\s+' + COST + '\s+' + COST + '\s*$'
+PRODUCT_PATTERN = '^\s*[Α-ΩA-Z_ΌΊΉΎΆΈΏ]+\s*:\s*' + INT_NUM + '\s+' + COST + '\s+' + COST + '\s*$'
 SYNOLO_PATTERN = '^\s*ΣΥΝΟΛΟ\s*:\s*' + COST + '\s*$'
 SPLIT_RECEIPT = '^[-]+$'
 
