@@ -5,7 +5,7 @@ ________________________________________________________________________________
 
     Authors : Zacharioudakis Nikolas, Spyridakis Christos
     Created Date : 13/11/2019
-    Last Updated : 23/11/2019
+    Last Updated : 25/11/2019
     Email : zaharioudakis@yahoo.com , spyridakischristos@gmail.com
 
     Description :   Read repeatedly receipts containing products, that consumers bought from different stores,
@@ -97,7 +97,8 @@ MEMORY = False
 PRODUCTS = False
 VALID = False
 ERROR = False
-
+ITEMS_DICTIONARY = False
+UPDATE = False
 
 def create_parser():
     """
@@ -127,13 +128,14 @@ def create_parser():
         version_message = sys.argv[0] + ' ' + version
         parser = argparse.ArgumentParser(prog=program_name, description=description, epilog=epilog,
                                          formatter_class=argparse.RawDescriptionHelpFormatter)
-        parser.add_argument('-c', '--correct', dest="VALID", action="store_true",
-                            help='display when a product is valid')
+        parser.add_argument('-c', '--correct', dest="VALID", action="store_true", help='display when a receipt is valid')
         parser.add_argument('-d', '--debug', dest="DEBUG", action="store_true", help='enable debug mode')
         parser.add_argument('-e', '--error', dest="ERROR", action="store_true", help='print only not valid cases')
-        parser.add_argument('-p', '--products', dest="PRODUCTS", action="store_true", help='in insertion show products')
+        parser.add_argument('-p', '--products', dest="PRODUCTS", action="store_true", help='in insertion show products info')
         parser.add_argument('-t', '--time', dest="TIME", action="store_true", help='display execution time per request')
-        parser.add_argument('-m', '--memory', dest="MEMORY", action="store_true", help='display memory usage')
+        parser.add_argument('-m', '--memory', dest="MEMORY", action="store_true", help='display memory usage (TODO)')
+        parser.add_argument('-i', '--items', dest="ITEMS_DICTIONARY", action="store_true", help='print all items for each afm after file insertion')
+        parser.add_argument('-u', '--update', dest="UPDATE", action="store_true", help='show updated products\' dictionary after each product\'s insertion')
         parser.add_argument('-v', '--version', action='version', version=version_message)
         return parser
     except Exception:
@@ -152,14 +154,11 @@ def calculate_time(func):
         func(*args, **kwargs)
         stop_timer = time.time()
         t_time = round((stop_timer - start_timer), 10)
-        iterations = 0  # TODO: fix it
 
         if DEBUG or TIME:
             print('-' * 50 +
                   '\n{TIME} Function: ' + func.__name__ +
                   ' | Time: ' + t_time.__str__() + ' (sec)')
-            # + ' | Iterations: ' + str(iterations))
-
     return wrap
 
 
@@ -173,6 +172,19 @@ def update_afm_receipts(new_receipt, afm):
             receipts_dict[afm]["products"][key] = {'amount': new_receipt[afm]["products"][key]["amount"],
                                                    'total': new_receipt[afm]["products"][key]["total"]}
     receipts_dict[afm]["total"] = round((receipts_dict[afm]["total"] + new_receipt[afm]["total"]), 2)
+
+
+def print_receipts():
+    print('------------------ {RECEIPTS-DICTIONARY} ------------------')
+    n = 1
+    for key in sorted(receipts_dict):
+        value = receipts_dict.get(key)
+        print(str(n) + ') AFM: ' + str(key) + ' | Total: ' + str(value['total']))
+        prod = dict(receipts_dict[key]['products'])
+        for k in sorted(prod.keys()):
+            print(' - ' + str(k) + '\t' + str(prod[k]))
+        n += 1
+        if n<= len(receipts_dict): print('\n')
 
 
 @calculate_time
@@ -194,6 +206,7 @@ def add_new_file(filename):
         while True:                                                                       # For FILE loop
             if not ln:                                                                    # If END of file return
                 if DEBUG: print('#' * 30 + '  EOF  ' + '#' * 30)
+                if ITEMS_DICTIONARY: print_receipts()
                 return
             elif dash_pattern.match(ln.strip()):                                          # Dash line PATTERN match
                 ln = file.readline().upper()                                              # Read next line (must be AFM)
@@ -201,6 +214,7 @@ def add_new_file(filename):
                 if afm_pattern.match(ln) is None:                                         # AFM PATTERN check
                     if ln and (ERROR or DEBUG): print('-' * 50 + '\n{AFM-WRONG-PATTERN:' + str(line_Number) + '} - ' + str(ln).strip())
                     continue                                                              # Wrong AFM PATTERN
+
                 afm = str(ln.strip().split(":").__getitem__(1).strip())                   # Save AFM
                 if DEBUG: print('-' * 50 + '\n{AFM:' + str(line_Number) + '} - New Receipt, AFM: ' + str(afm))
 
@@ -212,13 +226,13 @@ def add_new_file(filename):
                     ln = file.readline().upper()                                          # Read next line (PROD or TOT)
                     line_Number += 1
                     if product_pattern.match(ln) is not None:                             # Product PATTERN check
-                        name = str(ln.strip().split(":").__getitem__(0).strip())          # Product's name
+                        name = str(ln.strip().split(":").__getitem__(0).strip())          # Save Product's name
                         spec = str(ln.strip().split(":").__getitem__(1))
-                        amount = int(spec.strip().split().__getitem__(0).strip())         # Product's quantity
-                        cost = float(spec.strip().split().__getitem__(1).strip())         # Product's cost per unit
-                        total = float(spec.strip().split().__getitem__(2).strip())        # Product's total cost
+                        amount = int(spec.strip().split().__getitem__(0).strip())         # Save Product's quantity
+                        cost = float(spec.strip().split().__getitem__(1).strip())         # Save Product's cost per unit
+                        total = float(spec.strip().split().__getitem__(2).strip())        # Save Product's total cost
 
-                        # checking if amount*cost per product equals product's total
+                        # Checking if amount*cost per product equals product's total
                         if round((amount * cost), 2) != total:
                             if ERROR or DEBUG: print(
                                 '{SUM-ERROR:' + str(line_Number) + '} - Total: ' + str(total) + ' != ' + ' (' + str(amount) + ' * ' + str(
@@ -231,6 +245,9 @@ def add_new_file(filename):
                         # Get the subtotal of the receipt products
                         p_total = round(p_total + total, 2)
 
+                        # ------------------------------------
+                        #   Save Product to temp dictionary
+                        # ------------------------------------
                         # if the product already exists in the dictionary then add the info in the existent value
                         # else add new key-value in the dictionary
                         if name in products:
@@ -238,6 +255,7 @@ def add_new_file(filename):
                             products[name]["total"] = round(products[name]["total"] + total, 2)
                         else:
                             products[name] = {'amount': amount, 'total': total}
+                        if UPDATE: print('-> {UPDATE PRODUCTS} - ' + str(products) + '\n')
                         continue
                     elif total_pattern.match(ln) is not None:                             # Total PATTERN check
                         rec_total = float(ln.strip().split(":").__getitem__(1).strip())   # Save total cost
@@ -252,6 +270,10 @@ def add_new_file(filename):
                         line_Number += 1
                         if dash_pattern.match(ln.strip()):                                # Dash line
                             if VALID: print("{VALID-RECEIPT !!!}")
+
+                            # ------------------------------------
+                            #   Save Receipt to dictionary
+                            # ------------------------------------
                             if afm in receipts_dict:
                                 update_afm_receipts({afm: {"products": products, "total": float(rec_total)}}, afm)
                             else:
@@ -300,7 +322,7 @@ def give_statistics_for_afm(afm):
         return
     data = data["products"]
     for prods in sorted(data.keys()):
-        print(prods + " " + data[prods]["amount"].__str__())
+        print(str(prods) + " " + data[prods]["total"].__str__())
 
 
 def print_menu():
@@ -326,6 +348,8 @@ if __name__ == '__main__':
     PRODUCTS = _args.PRODUCTS
     VALID = _args.VALID
     ERROR = _args.ERROR
+    ITEMS_DICTIONARY = _args.ITEMS_DICTIONARY
+    UPDATE = _args.UPDATE
 
     if DEBUG: print(_args)
     afm_pattern = re.compile(AFM_PATTERN)
@@ -353,7 +377,7 @@ if __name__ == '__main__':
             give_statistics_for_product(str(input("Give a product name: ")).upper())
         elif user == '3':
             afm = str(input("Give an AFM: "))
-            if re.match("^[0-9]{10}$", afm) is not None:
+            if re.match(AFM, afm) is not None:
                 give_statistics_for_afm(afm)
         elif user == '4':
             exit(0)
