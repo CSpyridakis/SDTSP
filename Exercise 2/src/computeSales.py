@@ -5,7 +5,7 @@ ________________________________________________________________________________
 
     Authors : Zacharioudakis Nikolas, Spyridakis Christos
     Created Date : 13/11/2019
-    Last Updated : 25/11/2019
+    Last Updated : 26/11/2019
     Email : zaharioudakis@yahoo.com , spyridakischristos@gmail.com
 
     Description :   Read repeatedly receipts containing products, that consumers bought from different stores,
@@ -86,7 +86,7 @@ COST = '(([0-9]+.[0-9]+)|(' + INT_NUM + '))' # TODO: Floating poing number like 
 
 # REGEXES
 AFM_PATTERN = '^\s*ΑΦΜ\s*:\s*' + AFM + '\s*$'
-PRODUCT_PATTERN = '^\s*[Α-ΩA-Z_ΌΊΉΎΆΈΏ]+\s*:\s*' + INT_NUM + '\s+' + COST + '\s+' + COST + '\s*$'
+PRODUCT_PATTERN = '^\s*[^ ]+\s*:\s*' + INT_NUM + '\s+' + COST + '\s+' + COST + '\s*$'
 SYNOLO_PATTERN = '^\s*ΣΥΝΟΛΟ\s*:\s*' + COST + '\s*$'
 SPLIT_RECEIPT = '^[-]+$'
 
@@ -203,12 +203,14 @@ def add_new_file(filename):
         # Starting point of new file parsing
         line_Number = 1
         ln = file.readline()                                                              # Read first line
+        DASH_FIRST=True
         while True:                                                                       # For FILE loop
             if not ln:                                                                    # If END of file return
                 if DEBUG: print('#' * 30 + '  EOF  ' + '#' * 30)
                 if ITEMS_DICTIONARY: print_receipts()
                 return
-            elif dash_pattern.match(ln.strip()):                                          # Dash line PATTERN match
+            elif dash_pattern.match(ln):                                          # Dash line PATTERN match
+                DASH_FIRST=False
                 ln = file.readline().upper()                                              # Read next line (must be AFM)
                 line_Number += 1
                 if afm_pattern.match(ln) is None:                                         # AFM PATTERN check
@@ -268,7 +270,7 @@ def add_new_file(filename):
 
                         ln = file.readline()                                              # Read next line
                         line_Number += 1
-                        if dash_pattern.match(ln.strip()):                                # Dash line
+                        if dash_pattern.match(ln):                                # Dash line
                             if VALID: print("{VALID-RECEIPT !!!}")
 
                             # ------------------------------------
@@ -288,6 +290,9 @@ def add_new_file(filename):
                         break
             # Read next line if this is not a dash line
             else:
+                if not DASH_FIRST and (DEBUG or ERROR):
+                    print('{DASH-LINE-ERROR:' + str(line_Number) + '}')
+                DASH_FIRST=True
                 ln = file.readline()
                 line_Number += 1
                 continue
