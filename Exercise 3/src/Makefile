@@ -29,13 +29,8 @@ HELPMENU = $(USAGE)\n$(DESCRIPTION)\nOPTIONS:
 ## 
 ## ----------------------------------------------------
 
-all: $(OBJS)	## Create Server and Client executables
-	$(CC) -o $(OUTSERVER) $(OBJS_SERVER)
-	$(CC) -o $(OUTCLIENT) $(OBJS_CLIENT)
-
-help:	## Print help message and exit
-	@echo "$(HELPMENU)" ; grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "   %-30s %s\n", $$1, $$2}'
-
+all: client server ## Create Server and Client executables
+	
 client: $(OBJS_CLIENT)	## Create only client's executable
 	$(CC) -o $(OUTCLIENT) $?
 
@@ -44,6 +39,9 @@ server: $(OBJS_SERVER)	## Create only server's executable
 
 clean:  ## Clean Object files and executables
 	$(RM) $(OBJS) $(OUTSERVER) $(OUTCLIENT)
+
+help:	## Print help message and exit
+	@echo "$(HELPMENU)" ; grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "   %-30s %s\n", $$1, $$2}'
 
 count:	## Count number of lines
 	wc $(SOURCE) $(HEADER)
