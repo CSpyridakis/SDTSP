@@ -22,7 +22,7 @@ char *parToVar(char *par){
 int main(int argc, char *argv[]){
     
     // Check input parameters
-    if(argc == 2 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0 )) menu();
+    if(argc == 2 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0 )) {menu(); exit(EXIT_SUCCESS);}
     else if (argc != 5){
         printf("Wrong number of arguments!\nPlease run %s -h to see properly usage\n", argv[0]);
         exit(EXIT_FAILURE);

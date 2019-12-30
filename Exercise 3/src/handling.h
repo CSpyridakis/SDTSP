@@ -14,9 +14,12 @@
 
 #define FATALERR(errcode) FATAL(strerror(errcode))
 
+// CHECK MACROS
 #define CHECKNO(X) {if ((X) == -1) FATALERR(errno);}
 
 #define CHECKNU(X) {if ((X) == NULL) FATALERR(errno);}
+
+#define CHECKNE(X) {if ((X) < 0) FATALERR(errno);}
 
 #define CHECK(X) {if ((X) == NULL || (X) != 0) FATALERR(errno);}
 
