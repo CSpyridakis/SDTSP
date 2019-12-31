@@ -9,13 +9,20 @@
 #include <string.h>
 #include <stdlib.h> // Exit_success and exit_failure  exit(EXIT_FAILURE);
 
-#include <stdarg.h> // For unknown number of arguments
 
-#define PRINTMESS(kindof, mess) { fprintf(stderr, "[%s] {%s:%d}-(%s) %s\n", kindof, __FILE__, __LINE__, __FUNCTION__, (mess)); }
+#define BLACK   "\033[30;7m"
+#define RED     "\033[31;1m"
+#define GREEN   "\033[32;1m"
+#define YELLOW  "\033[33;1m"
+#define WHITE   "\033[37;1m"
+#define NORMAL  "\033[0m"
 
-#define DEBUG(mess) { if (DEBUG_S) {PRINTMESS("DEBUG", mess); strcpy(mess, "");}}
 
-#define FATAL(mess) { PRINTMESS("ERROR", mess) ; abort(); }
+#define PRINTMESS(kindof, mess) { fprintf(stderr, "[%s] %s{%s:%d}-(%s)%s %s\n", kindof, YELLOW, __FILE__, __LINE__, __FUNCTION__, NORMAL, (mess)); }
+
+#define DEBUG(mess) { if (DEBUG_S) {PRINTMESS(COLOR("DEBUG", GREEN), mess); strcpy(mess, "");}}
+
+#define FATAL(mess) { PRINTMESS(COLOR("ERROR", RED), mess) ; abort(); }
 
 #define FATALERR(errcode) FATAL(strerror(errcode))
 
@@ -28,11 +35,19 @@
 
 #define CHECK(X) {if ((X) == NULL || (X) != 0) FATALERR(errno);}
 
-// TODO
-// char * COLOR(char * TEXT, char * COL){
-//     int len = 
-//     return snprintf(info, sizeof(info), "ServerName: %s, serverPort: %d, receivePort: %d, inputFileWithCommands: %s", serverName, serverPort, receivePort, inputFileWithCommands); 
-// }
+
+/**
+    @brief:
+
+    @param:
+
+    @return:
+*/
+char * COLOR(char * TEXT, char * COL){
+    static char buf[256];
+    snprintf(buf, sizeof(buf), "%s%s%s", COL, TEXT, NORMAL);
+    return buf;
+}
 
 
 /**

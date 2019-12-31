@@ -42,6 +42,7 @@ int main(int argc, char *argv[]){
     // Juct create and print a debug message
     snprintf(infoBuffer, sizeof(infoBuffer), "Socket created successfully! Socket descriptor: %d", sockfd) ;  DEBUG(infoBuffer);
 
+    
 
     exit(EXIT_SUCCESS);
 }
