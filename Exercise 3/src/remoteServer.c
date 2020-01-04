@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <sys/wait.h>       // For sockets
 #include <sys/socket.h>     // For sockets
-#include <sys/types.h>
+#include <sys/types.h>      // For sockets
 
 #include <netinet/in.h>     // Internet addresses are defined here
 
@@ -13,22 +14,60 @@
 
 #include "handling.h"
 
+#define SERVER_BACKLOG 5
+
 
 void menu(){
     printf("TODO\n");
 }
 
+void handleConnections(int client_socket){
+    char buffer[BUFSIZE];
+    size_t bytes_read;
+    int messageSize = 0;
+
+    CHECKNO(bytes_read = read(client_socket, buffer, BUFSIZE)); 
+
+    DEBUG("REQUEST: %s", buffer);
+    close(client_socket);
+    DEBUG("Closing connection");
+}   
+
 // TODO in CTR + C signal in client send end to Server
 
 int receiveFromClient(char *process, int portNumber){
+    
+    int sockfd;
+    
+    // Init address struct
+    struct sockaddr_in server_addr;
+    bzero(&server_addr,sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_addr.sin_port = htons(portNumber);
 
     DEBUG("[%s] Create Server Socket...", process);
-
-    // Create a Socket for Receiving data from client
-    int sockfd;
     CHECKNO(sockfd=socket(AF_INET, SOCK_STREAM, 0)); 
 
-    DEBUG("Socket created successfully! Socket descriptor: %d", sockfd);
+    DEBUG("[%s] Bind Server socket...", process);
+    CHECKNO(bind(sockfd, (struct socketaddr *) &server_addr, sizeof(server_addr)));
+
+    DEBUG("[%s] Listen socket...", process);
+    CHECKNO(listen(sockfd, SERVER_BACKLOG));
+
+    DEBUG("[%s] Socket created successfully! Socket descriptor: %d", process, sockfd);
+
+    int addr_size, client_socket;
+    struct sockaddr_in client_addr;
+    while (1){
+        DEBUG("[%s] Waiting client to connect...", process);
+        addr_size = sizeof(struct sockaddr_in);
+        
+        CHECKNO(client_socket=accept(sockfd, (struct socketaddr *) &client_addr, (socklen_t *)&addr_size));
+        DEBUG("[%s] Client Connected", process);
+
+        handleConnections(client_socket);
+    }
 }
 
 //-------------------------------------------------------------------------
@@ -45,7 +84,14 @@ int main(int argc, char *argv[]){
     int portNumber = atoi(argv[1]);
     int numChildren = atoi(argv[2]);
     DEBUG("[Input Parameters] portNumber: %d, numChildren: %d", portNumber, numChildren);
-
+    if (portNumber<1){
+        fprintf(stderr, "Port parameters must be acceptable!\nPlease run %s -h to see properly usage\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+    else if (numChildren<1 || numChildren>1024){  // TODO FIX IT
+        fprintf(stderr, "Number of childrens must be acceptable\nPlease run %s -h to see properly usage\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
 
     // PROCESSES 
     // pid_t childpid;
@@ -64,7 +110,7 @@ int main(int argc, char *argv[]){
     //     receiveFromServer("Child");
     // }
     // else{
-        // receiveFromClient("Parent", portNumber);
+        receiveFromClient("Parent", portNumber);
     // }
 
     sleep(10);

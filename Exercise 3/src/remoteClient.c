@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <sys/wait.h>       // For sockets
 #include <sys/socket.h>     // For sockets
-#include <sys/types.h>
+#include <sys/types.h>      // For sockets
 
 #include <netinet/in.h>     // Internet addresses are defined here
 
@@ -12,6 +13,8 @@
 #include <unistd.h>         // Fork
 
 #include <unistd.h>         // For Sleep
+
+# include <netdb.h>         // gethostbyaddr
 
 #include "handling.h"
 
@@ -46,6 +49,27 @@ int sentToServer(char *process, char *serverName, int serverPort, char *inputFil
     CHECKNU(fp = fopen(inputFileWithCommands, "r"));
 
     DEBUG("[%s] Try to connect to Server...", process);
+    int sockfd;
+    struct hostent * rem ;
+    CHECKNU(rem = gethostbyname(serverName));
+    struct sockaddr_in serv_addr;
+    serv_addr.sin_family = AF_INET; 
+    serv_addr.sin_port = htons(serverPort);
+    
+    DEBUG("[%s] Create Client Socket...", process);
+    CHECKNO(sockfd=socket(AF_INET, SOCK_STREAM, 0));
+
+    DEBUG("[%s] Convert IPv4 to binary form...", process);
+    CHECKNO(inet_pton(AF_INET, serverName, &serv_addr.sin_addr));
+
+     
+    // memcpy(&serv_addr.sin_addr, rem->h_addr, rem->h_length);
+
+    DEBUG("[%s] Connect to address: %d", process, serv_addr.sin_addr);
+
+
+    DEBUG("[%s] Client try to connect to server...", process);
+    CHECKNO(connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)));
 
     int cntMess = 0;
     while ((read = getline(&line, &len, fp)) != -1) {
@@ -72,12 +96,17 @@ int main(int argc, char *argv[]){
         exit(EXIT_FAILURE);
     }
 
+
     // Create local variables and copy input parameter to them
     char *serverName = parToVar(argv[1]);
     int serverPort = atoi(argv[2]);
     int receivePort = atoi(argv[3]);
     char *inputFileWithCommands = parToVar(argv[4]);
     DEBUG("[Input Parameters] ServerName: %s, serverPort: %d, receivePort: %d, inputFileWithCommands: %s", serverName, serverPort, receivePort, inputFileWithCommands);
+    if (serverPort<1 || receivePort<1){
+        fprintf(stderr, "Port parameters must be acceptable!\nPlease run %s -h to see properly usage\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
 
     pid_t childpid;
     CHECKNO(childpid = fork());

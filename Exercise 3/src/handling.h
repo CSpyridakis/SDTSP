@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define BUFSIZE 4096
 
 #define BLACK   "\033[30;7m"
 #define RED     "\033[31;1m"
@@ -18,7 +19,7 @@
 #define NORMAL  "\033[0m"
 
 // For debug messages constraction
-char infoBuffer[2048];
+char infoBuffer[BUFSIZE];
 
 // Print kind of message (DEBUG, ERROR) and actual text in stderr 
 #define PRINTMESS(kindof, mess) {fprintf(stderr, "[%s] %s{%s:%d}-(%s:%d)%s%s %s %s\n", kindof, YELLOW, __FILE__, __LINE__, __FUNCTION__, getpid(), NORMAL, WHITE, (mess), NORMAL);}
@@ -35,13 +36,11 @@ char infoBuffer[2048];
 
 // -----------------------------------------------------
 // CHECK MACROS 
-#define CHECKNO(X) {if ((X) == -1) FATALERR(errno);}
+#define CHECKNO(X) {if ((X) == (-1)) FATALERR(errno);}
 
 #define CHECKNU(X) {if ((X) == NULL) FATALERR(errno);}
 
 #define CHECKNE(X) {if ((X) < 0) FATALERR(errno);}
-
-#define CHECK(X) {if ((X) == NULL || (X) != 0) FATALERR(errno);}
 
 
 /**
