@@ -18,7 +18,7 @@
 #define NORMAL  "\033[0m"
 
 
-#define PRINTMESS(kindof, mess) { fprintf(stderr, "[%s] %s{%s:%d}-(%s)%s %s\n", kindof, YELLOW, __FILE__, __LINE__, __FUNCTION__, NORMAL, (mess)); }
+#define PRINTMESS(kindof, mess) { fprintf(stderr, "[%s] %s{%s:%d}-(%s:%d)%s%s %s %s\n", kindof, YELLOW, __FILE__, __LINE__, __FUNCTION__, getpid(), NORMAL, WHITE, (mess), NORMAL); }
 
 #define DEBUG(mess) { if (DEBUG_S) {PRINTMESS(COLOR("DEBUG", GREEN), mess); strcpy(mess, "");}}
 

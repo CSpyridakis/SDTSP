@@ -1,16 +1,73 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>     //Sleep
+
+#include <sys/socket.h>     // For sockets
+#include <sys/types.h>
+
+#include <netinet/in.h>     // Internet addresses are defined here
+
+#include <arpa/inet.h>
+
+#include <unistd.h>         // Fork
+
+#include <unistd.h>         // For Sleep
 #include "handling.h"
 
 #define _GNU_SOURCE //From read line example
+
+// For debug messages
+char infoBuffer[1024] ;
 
 void menu(){
     printf("Menu\n");
     //TODO HELP MENU
 }
 
+/**
+    @brief:
+
+    @param:
+
+    @return:
+*/
+int receiveFromServer(char *process, int receivePort){
+    snprintf(infoBuffer, sizeof(infoBuffer), "%s | Try to connect to Server...", process); 
+    DEBUG(infoBuffer);
+}
+
+/**
+    @brief:
+
+    @param:
+
+    @return:
+*/
+int sentToServer(char *process, char *serverName, int serverPort, char *inputFileWithCommands){
+    // File auxiliary variables and open file    
+    FILE *fp;
+    char *line = NULL ; size_t len = 0 ; ssize_t read;
+    CHECKNU(fp = fopen(inputFileWithCommands, "r"));
+
+    snprintf(infoBuffer, sizeof(infoBuffer), "%s | Try to connect to Server...", process); 
+    DEBUG(infoBuffer);
+
+    int cntMess = 0;
+    while ((read = getline(&line, &len, fp)) != -1) {
+
+        // TODO: SENT DATA
+
+        cntMess++;
+        if(cntMess%10==0) sleep(5);
+    }
+
+    // Free resources and exit 
+    fclose(fp);
+    free(line);
+}
+
+
+//-------------------------------------------------------------------------
 int main(int argc, char *argv[]){
     
     // Check input parameters
@@ -25,30 +82,21 @@ int main(int argc, char *argv[]){
     int serverPort = atoi(argv[2]);
     int receivePort = atoi(argv[3]);
     char *inputFileWithCommands = parToVar(argv[4]);
+    // Juct create and print a debug message
+    snprintf(infoBuffer, sizeof(infoBuffer), "ServerName: %s, serverPort: %d, receivePort: %d, inputFileWithCommands: %s", serverName, serverPort, receivePort, inputFileWithCommands); 
+    DEBUG(infoBuffer);
 
-    // Juct a debug message for input parameters
-    char info[1024]; 
-    snprintf(info, sizeof(info), "ServerName: %s, serverPort: %d, receivePort: %d, inputFileWithCommands: %s", serverName, serverPort, receivePort, inputFileWithCommands); 
-    DEBUG(info);
+    pid_t childpid;
+    CHECKNO(childpid = fork());
 
-    // File auxiliarly variables and open file    
-    FILE *fp;
-    char *line = NULL ; size_t len = 0 ; ssize_t read;
-    CHECKNU(fp = fopen(inputFileWithCommands, "r"));
-
-
-    int cntMess = 0;
-    while ((read = getline(&line, &len, fp)) != -1) {
-        printf("Line:%d - %s", cntMess+1, line);
-
-        // TODO: SENT DATA
-
-        cntMess++;
-        if(cntMess%10==0) sleep(5);
+    if (childpid == 0){
+        receiveFromServer("Child", receivePort);
+    }
+    else{
+        sentToServer("Parent", serverName, serverPort, inputFileWithCommands);
     }
 
-    // Free resources and exit 
-    fclose(fp);
-    free(serverName) ; free(inputFileWithCommands) ; free(line) ;
+    
+    free(serverName) ; free(inputFileWithCommands) ; 
     exit(EXIT_SUCCESS);
 }

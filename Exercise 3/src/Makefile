@@ -49,10 +49,10 @@ count:	## Count number of lines
 	wc -l $(SOURCE) $(HEADER)
 
 rc: ## Run Client for testing, giving predefined parameters
-	@./remoteClient server 1 2 infile
+	@./remoteClient server 1 5 infile
 
 rs: ## Run Server for testing, giving predefined parameters
-	@./remoteServer 1 2
+	@./remoteServer 1 5
 
 
 # ----------------------------------------------------
