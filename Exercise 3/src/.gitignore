@@ -1,3 +1,4 @@
 *.o
 remoteClient
 remoteServer
+.vscode

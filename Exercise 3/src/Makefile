@@ -48,11 +48,17 @@ help:	## Print this help message and exit
 count:	## Count number of lines
 	wc -l $(SOURCE) $(HEADER)
 
+debug: clean all run	## Clean, Make and Run both Client and Server for testing, giving predefined parameters
+
 rc: ## Run Client for testing, giving predefined parameters
 	@./remoteClient server 1 5 infile
 
 rs: ## Run Server for testing, giving predefined parameters
 	@./remoteServer 1 5
+
+run: ## Run both Client and Server for testing, giving predefined parameters
+	@./remoteServer 1 5 & ./remoteClient server 1 5 infile 
+
 
 
 # ----------------------------------------------------

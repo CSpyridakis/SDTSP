@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <errno.h> 
 #include <string.h>
-#include <stdlib.h> // Exit_success and exit_failure  exit(EXIT_FAILURE);
+#include <stdlib.h>
 
 
 #define BLACK   "\033[30;7m"
@@ -17,16 +17,24 @@
 #define WHITE   "\033[37;1m"
 #define NORMAL  "\033[0m"
 
+// For debug messages constraction
+char infoBuffer[2048];
 
-#define PRINTMESS(kindof, mess) { fprintf(stderr, "[%s] %s{%s:%d}-(%s:%d)%s%s %s %s\n", kindof, YELLOW, __FILE__, __LINE__, __FUNCTION__, getpid(), NORMAL, WHITE, (mess), NORMAL); }
+// Print kind of message (DEBUG, ERROR) and actual text in stderr 
+#define PRINTMESS(kindof, mess) {fprintf(stderr, "[%s] %s{%s:%d}-(%s:%d)%s%s %s %s\n", kindof, YELLOW, __FILE__, __LINE__, __FUNCTION__, getpid(), NORMAL, WHITE, (mess), NORMAL);}
 
-#define DEBUG(mess) { if (DEBUG_S) {PRINTMESS(COLOR("DEBUG", GREEN), mess); strcpy(mess, "");}}
+// Create debug message, print it in stderr and empty infoBuffer
+#define DEBUG(mess...) {if (DEBUG_S) {snprintf(infoBuffer, sizeof(infoBuffer), mess); PRINTMESS(COLOR("DEBUG", GREEN), infoBuffer); strcpy(infoBuffer, "");}}
 
-#define FATAL(mess) { PRINTMESS(COLOR("ERROR", RED), mess) ; abort(); }
+// Print error message and abort
+#define FATAL(mess) {PRINTMESS(COLOR("ERROR", RED), mess); abort();}
 
+// Find out actual error based on errcode
 #define FATALERR(errcode) FATAL(strerror(errcode))
 
-// CHECK MACROS
+
+// -----------------------------------------------------
+// CHECK MACROS 
 #define CHECKNO(X) {if ((X) == -1) FATALERR(errno);}
 
 #define CHECKNU(X) {if ((X) == NULL) FATALERR(errno);}
@@ -37,11 +45,17 @@
 
 
 /**
-    @brief:
+    @brief: Change color of a given message
 
-    @param:
+    @param: TEXT the text that you want to change its color.
+            It must not be more than 200 characters.
+    
+    @param: COL the actual color you want TEXT has.
 
-    @return:
+    @see: Object-like Macros in the top of this header file
+            for available colors.
+
+    @return: 
 */
 char * COLOR(char * TEXT, char * COL){
     static char buf[256];
@@ -51,11 +65,13 @@ char * COLOR(char * TEXT, char * COL){
 
 
 /**
-    @brief:
+    @brief: Take a program's input parameter that is text and converts it
+            in variable (actualy a pointer in char) 
+            
 
-    @param:
+    @param: par the parameter that you want to read
 
-    @return:
+    @return:  parToVar a pointer to the needed string
 */
 char *parToVar(char *par){
     int len = strlen(par);

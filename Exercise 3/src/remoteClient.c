@@ -12,16 +12,13 @@
 #include <unistd.h>         // Fork
 
 #include <unistd.h>         // For Sleep
+
 #include "handling.h"
 
 #define _GNU_SOURCE //From read line example
 
-// For debug messages
-char infoBuffer[1024] ;
-
 void menu(){
-    printf("Menu\n");
-    //TODO HELP MENU
+    printf("TODO\n");
 }
 
 /**
@@ -32,8 +29,7 @@ void menu(){
     @return:
 */
 int receiveFromServer(char *process, int receivePort){
-    snprintf(infoBuffer, sizeof(infoBuffer), "%s | Try to connect to Server...", process); 
-    DEBUG(infoBuffer);
+    DEBUG("[%s] Try to connect to Server...", process);
 }
 
 /**
@@ -49,8 +45,7 @@ int sentToServer(char *process, char *serverName, int serverPort, char *inputFil
     char *line = NULL ; size_t len = 0 ; ssize_t read;
     CHECKNU(fp = fopen(inputFileWithCommands, "r"));
 
-    snprintf(infoBuffer, sizeof(infoBuffer), "%s | Try to connect to Server...", process); 
-    DEBUG(infoBuffer);
+    DEBUG("[%s] Try to connect to Server...", process);
 
     int cntMess = 0;
     while ((read = getline(&line, &len, fp)) != -1) {
@@ -71,7 +66,7 @@ int sentToServer(char *process, char *serverName, int serverPort, char *inputFil
 int main(int argc, char *argv[]){
     
     // Check input parameters
-    if(argc == 2 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0 )) { menu() ; exit(EXIT_SUCCESS); }
+    if(argc == 2 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0 )) {menu() ; exit(EXIT_SUCCESS);}
     else if (argc != 5){
         fprintf(stderr, "Wrong number of arguments!\nPlease run %s -h to see properly usage\n", argv[0]);
         exit(EXIT_FAILURE);
@@ -82,9 +77,7 @@ int main(int argc, char *argv[]){
     int serverPort = atoi(argv[2]);
     int receivePort = atoi(argv[3]);
     char *inputFileWithCommands = parToVar(argv[4]);
-    // Juct create and print a debug message
-    snprintf(infoBuffer, sizeof(infoBuffer), "ServerName: %s, serverPort: %d, receivePort: %d, inputFileWithCommands: %s", serverName, serverPort, receivePort, inputFileWithCommands); 
-    DEBUG(infoBuffer);
+    DEBUG("[Input Parameters] ServerName: %s, serverPort: %d, receivePort: %d, inputFileWithCommands: %s", serverName, serverPort, receivePort, inputFileWithCommands);
 
     pid_t childpid;
     CHECKNO(childpid = fork());
