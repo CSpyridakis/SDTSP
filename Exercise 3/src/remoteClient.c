@@ -65,11 +65,11 @@ int sentToServer(char *process, char *serverName, int serverPort, char *inputFil
      
     // memcpy(&serv_addr.sin_addr, rem->h_addr, rem->h_length);
 
-    DEBUG("[%s] Connect to address: %d", process, serv_addr.sin_addr);
+    // DEBUG("[%s] Connect to address: %s", process, serv_addr.sin_addr);
 
 
     DEBUG("[%s] Client try to connect to server...", process);
-    CHECKNO(connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)));
+    CHECKNO(connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)));
 
     int cntMess = 0;
     while ((read = getline(&line, &len, fp)) != -1) {
@@ -118,7 +118,6 @@ int main(int argc, char *argv[]){
         sentToServer("Parent", serverName, serverPort, inputFileWithCommands);
     }
 
-    
     free(serverName) ; free(inputFileWithCommands) ; 
     exit(EXIT_SUCCESS);
 }

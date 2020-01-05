@@ -50,7 +50,7 @@ int receiveFromClient(char *process, int portNumber){
     CHECKNO(sockfd=socket(AF_INET, SOCK_STREAM, 0)); 
 
     DEBUG("[%s] Bind Server socket...", process);
-    CHECKNO(bind(sockfd, (struct socketaddr *) &server_addr, sizeof(server_addr)));
+    CHECKNO(bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)));
 
     DEBUG("[%s] Listen socket...", process);
     CHECKNO(listen(sockfd, SERVER_BACKLOG));
@@ -63,7 +63,7 @@ int receiveFromClient(char *process, int portNumber){
         DEBUG("[%s] Waiting client to connect...", process);
         addr_size = sizeof(struct sockaddr_in);
         
-        CHECKNO(client_socket=accept(sockfd, (struct socketaddr *) &client_addr, (socklen_t *)&addr_size));
+        CHECKNO(client_socket=accept(sockfd, (struct sockaddr*)&client_addr, (socklen_t *)&addr_size));
         DEBUG("[%s] Client Connected", process);
 
         handleConnections(client_socket);
