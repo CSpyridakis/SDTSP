@@ -40,7 +40,7 @@ server: $(OBJS_SERVER)	## Create only server's executable
 	$(CC) -o $(OUTSERVER) $?
 
 clean:  ## Clean Object files and executables
-	@echo "\e[34m------ REMOVE OBJECT FILES, OUPUT FILES AND EXECUTABLES ------\e[39m"	# TODO: Comment out in production
+	@echo "\033[34m------ REMOVE OBJECT FILES, OUPUT FILES AND EXECUTABLES ------\033[39m"	# TODO: Comment out in production
 	$(RM) $(OBJS) $(OUTSERVER) $(OUTCLIENT)
 	$(RM) output.*.*
 
@@ -57,7 +57,7 @@ count:	## Count number of lines
 debug: kill clean mess all run ## Clean, Make and Run both Client and Server for testing, giving predefined parameters
 	
 mess:
-	@echo "\e[34m-------------------------- COMPILE ---------------------------\e[39m"
+	@echo "\033[34m-------------------------- COMPILE ---------------------------\033[39m"
 
 rc: ## Run Client for testing, giving predefined parameters
 	@./remoteClient localhost 8081 8080 infile
@@ -66,14 +66,14 @@ rs: ## Run Server for testing, giving predefined parameters
 	@./remoteServer 8080 1
 
 run: ## Run both Client and Server for testing, giving predefined parameters
-	@echo "\e[34m---------------------- RUN EXECUTABLES -----------------------\e[39m"
+	@echo "\033[34m---------------------- RUN EXECUTABLES -----------------------\033[39m"
 	@./remoteServer 8080 1 & ./remoteClient localhost 8081 8080 infile 
 
 kill:	## Kill all Client and Server Processes
 	@clear
-	@echo "\e[34m--------------- KILL ALREADY RUNNING PROCESSES ---------------\e[39m"
-	@killall remoteServer && echo "\e[32mServer terminated successfully!\e[39m" || echo "\e[31mServer was not running.\e[39m"
-	@killall remoteClient && echo "\e[32mClient terminated successfully!\e[39m" || echo "\e[31mClient was not running.\e[39m"
+	@echo "\033[34m--------------- KILL ALREADY RUNNING PROCESSES ---------------\033[39m"
+	@killall remoteServer && echo "\033[32mServer terminated successfully!\033[39m" || echo "\033[31mServer was not running.\033[39m"
+	@killall remoteClient && echo "\033[32mClient terminated successfully!\033[39m" || echo "\033[31mClient was not running.\033[39m"
 
 # ----------------------------------------------------
 #					Object files
