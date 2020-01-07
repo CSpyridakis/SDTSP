@@ -60,14 +60,14 @@ mess:
 	@echo "\033[34m-------------------------- COMPILE ---------------------------\033[39m"
 
 rc: ## Run Client for testing, giving predefined parameters
-	@./remoteClient localhost 8081 8080 infile
+	@./remoteClient localhost 8080 8081 infile
 
 rs: ## Run Server for testing, giving predefined parameters
 	@./remoteServer 8080 1
 
 run: ## Run both Client and Server for testing, giving predefined parameters
 	@echo "\033[34m---------------------- RUN EXECUTABLES -----------------------\033[39m"
-	@./remoteServer 8080 1 & ./remoteClient localhost 8081 8080 infile 
+	@./remoteServer 8080 1 & ./remoteClient localhost 8080 8081 infile 
 
 kill:	## Kill all Client and Server Processes
 	@clear

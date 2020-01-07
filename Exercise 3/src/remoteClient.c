@@ -16,9 +16,9 @@
 
 #define _GNU_SOURCE //From read line example
 
-
+ 
 void menu(){
-    printf("TODO\n");
+    printf("Usage: ./remoteClient serverName serverPort receivePort inputFileWithCommands\n");
 }
 
 /**
@@ -39,26 +39,31 @@ int receiveFromServer(char *process, int receivePort){
 
     @return:
 */
-int sentToServer(char *process, char *serverName, int serverPort, char *inputFileWithCommands){
+int sentToServer(char *process, char *serverName, int serverPort, int receivePort, char *inputFileWithCommands){
     
+    char buffer[BUFSIZE];
+
     DEBUG("%s-(%s) Get hostname...", CLIENT, process);
     struct hostent *remote_addr; 
-    if(!(remote_addr= gethostbyname(serverName))){herror ("gethostbyname"); exit(EXIT_FAILURE);}
-
-    DEBUG("%s-(%s) Try to connect to Server in order to sent requests...", CLIENT, process);
-    
+    if(!(remote_addr=gethostbyname(serverName))){FATAL("ERROR with hostname!")}
+ 
     DEBUG("%s-(%s) Create Client Socket...", CLIENT, process);
     int sockfd;
     CHECKNO(sockfd=socket(AF_INET, SOCK_STREAM, 0));
 
-    DEBUG("%s-(%s) Convert IPv4 to binary form...", CLIENT, process);
+    DEBUG("%s-(%s) Convert hostname to address form...", CLIENT, process);
     struct sockaddr_in serv_addr;
     serv_addr.sin_family = AF_INET; 
-    memcpy(&serv_addr.sin_addr , remote_addr->h_addr, remote_addr->h_length ) ;
     serv_addr.sin_port = htons(serverPort);
+    serv_addr.sin_addr.s_addr = *(long *)(remote_addr->h_addr_list[0]);
 
     DEBUG("%s-(%s) Client try to connect to server...", CLIENT, process);
     CHECKNO(connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)));
+
+    DEBUG("%s-(%s) Sent port that server will response...", CLIENT, process);
+    // snprintf(buffer, BUFSIZE, "Port: %d", receivePort);
+    // CHECKNO(send(sockfd, buffer, BUFSIZE, 0));
+    // strcpy(buffer, "");
 
     DEBUG("%s-(%s) Open input file...", CLIENT, process);   
     FILE *fp;
@@ -69,15 +74,19 @@ int sentToServer(char *process, char *serverName, int serverPort, char *inputFil
     int cntMess = 0;
     while ((read = getline(&line, &len, fp)) != -1) {
 
-        // TODO: SENT DATA
-
+        // Send packet
+        DEBUG("%s-(%s) Packet no: %d data to send: %s", CLIENT, process, cntMess, line);
+        snprintf(buffer, BUFSIZE, "%d:%s", cntMess, line);
+        CHECKNO(send(sockfd, buffer, BUFSIZE, 0));
+        strcpy(buffer, "");
+        
         cntMess++;
-        if(cntMess%10==0) sleep(5);
+        if(cntMess%10==0) {sleep(5);};
     }
 
+    DEBUG("%s-(%s) Client has sent all requests!", CLIENT, process);
     // Free resources and exit 
-    fclose(fp);
-    free(line);
+    close(sockfd); fclose(fp); free(line);
 }
 
 
@@ -110,7 +119,7 @@ int main(int argc, char *argv[]){
         receiveFromServer("Child", receivePort);
     }
     else{
-        sentToServer("Parent", serverName, serverPort, inputFileWithCommands);
+        sentToServer("Parent", serverName, serverPort, receivePort, inputFileWithCommands);
     }
 
     free(serverName) ; free(inputFileWithCommands) ; 

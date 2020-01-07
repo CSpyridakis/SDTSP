@@ -1,128 +1,16 @@
-latingestloof
-itinestioseyh
-scantersnable
-corwarietradd
-iondsubjutsha
-oonescronstso
-arscorssewism
-lynelsarincri
-ersseringstin
-restablenedle
-molyholatmens
-ilstierelsihi
-segationsnent
-ravorrubbyhen
-ntrapnestskin
-terlonsssetsm
-tcherwredersk
-teentonsavati
-rthsolonviths
-orsitormiddli
-ppionsgragesc
-rprolorcaburs
-siderswingedo
-riesestoorras
-owersonsoborm
-acesistaniesi
-isatbrolaflys
-tersellidedst
-stiverchimman
-igisssssitoli
-lyractralinan
-ariderringler
-wasticalizato
-umphenouslige
-wredisholluet
-ffaedgivelogr
-frestrasssies
-estoneystorad
-losonzionsing
-tersandeculed
-ronsadchoesta
-bscrepilegibr
-cabordingstiv
-backeacystabi
-strousequatec
-edenioldingea
-thessingilema
-ratiougglyine
-ajohinbringen
-itatedlymsowe
-athicandahame
-ringtorgingew
-emollericanst
-umpelameervie
-rssidarfogiva
-baclesssistel
-aninterlwoody
-visensimmendr
-onlyingestion
-letardutliona
-lugspormesssi
-nvamsigertede
-embetetonsedl
-cicrellyhomsc
-ormanderssalt
-zatsexcesssbr
-revificanthst
-ticinestersio
-reospstarting
-harestedstser
-rnessidisoris
-eleilyholampn
-laplatessnoni
-rixswarnessse
-unnescurnedic
-ansenchiantro
-tysiguessssss
-ednelederions
-ionionsaverba
-hamedagmannal
-tadnercutsmun
-cronsivension
-plinvalgirece
-medintartiona
-rrysthropions
-ommistmeagona
-ingstalsaling
-itpalstratime
-rdemixershaws
-raviedisatesc
-erbeaterscret
-octinficladwa
-mmotwapalshea
-istopsserstap
-idtertasmskin
-tenimpdstring
-stersoseboess
-retstonondsku
-nariansobsini
-agemousecenty
-rtionspingrac
-shumpatualger
-proferepiessi
-fersamervisac
-olocursedayfi
-erselystrecom
-mulateardstai
-aticalstantat
-shipsissseath
-oushospetterc
-lossimorpoilk
-ssioneciparri
-teedilloriell
-ertinsiestram
-shosingkotaft
-rimodyerdrysi
-inesssonsenes
-shautowbostiv
-nervilsaborts
-aystesatighor
-zaggestertarb
-githowriestab
-tervellamster
-horicalothedi
-ampariessionw
-onfailesterin
-ctualesslysor
-scoinsvedwail
+ls /tmp/
+ls -al /tmp/
+ls /tmp/ ; echo "Hello"
+ls -al /tmp/ | tr -s " "  
+ls -al /tmp/ | tr -s " " | cut -d" " -f1
+cat /etc/passwd | grep -c ":"
+ls -al /etc | cat | tr -s " " | grep "root" | cut -d" " -f3,4
+echo "Hello"
+ls -alR /etc/ | touch file
+touch file | cat file
+seq 1 1 10 | grep -c 1 
+ls -al /tmp/
+end 
+echo "One process killed"
+timeToStop
+echo "I must not be executed"

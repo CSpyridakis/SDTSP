@@ -9,7 +9,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define BUFSIZE 4096
+#define BUFSIZE 2048
 
 #define RED     "\033[31;1m"
 #define GREEN   "\033[32;1m"

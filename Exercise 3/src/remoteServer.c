@@ -13,7 +13,7 @@
 #define SERVER_BACKLOG 5
 
 void menu(){
-    printf("TODO\n");
+    printf("Usage: ./remoteServer portNumber numChildren\n");
 }
 
 void handleConnections(int client_socket){
@@ -32,6 +32,8 @@ void handleConnections(int client_socket){
 
 int receiveFromClient(char *process, int portNumber){
     
+    char buffer[2048];
+
     int sockfd;
     
     // Init address struct
@@ -59,10 +61,20 @@ int receiveFromClient(char *process, int portNumber){
         addr_size = sizeof(struct sockaddr_in);
         
         CHECKNO(client_socket=accept(sockfd, (struct sockaddr*)&client_addr, (socklen_t *)&addr_size));
-        DEBUG("%s-(%s) Client Connected", SERVER, process);
+        DEBUG("%s-(%s) Client connected successfully!", SERVER, process);
 
-        handleConnections(client_socket);
+        // handleConnections(client_socket);
+
+        size_t bytes_read;
+        int messageSize = 0;
+
+        CHECKNO(bytes_read = read(client_socket, buffer, BUFSIZE)); 
+
+        DEBUG("%s-(%s) Package received: %s", SERVER, process, buffer);
+        
     }
+    close(client_socket);
+    DEBUG("%s-(%s) Closing connection...", SERVER, process);
 }
 
 //-------------------------------------------------------------------------
