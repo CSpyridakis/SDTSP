@@ -48,28 +48,28 @@ help:	## Print this help message and exit
 	@echo "$(HELPMENU)" ; grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "   %-30s %s\n", $$1, $$2}'
 
 count:	## Count number of lines
-	wc -l $(SOURCE) $(HEADER)
+	wc -l $(SOURCE) $(HEADER) $(MAKEFILE_LIST)
 
 
 # ------------------------------------------------
 #			DEBUG RULES
 #
-debug: close clean mess all run ## Clean, Make and Run both Client and Server for testing, giving predefined parameters
+debug: kill clean mess all run ## Clean, Make and Run both Client and Server for testing, giving predefined parameters
 	
 mess:
 	@echo "\e[34m-------------------------- COMPILE ---------------------------\e[39m"
 
 rc: ## Run Client for testing, giving predefined parameters
-	@./remoteClient 127.0.0.1 1 8080 infile
+	@./remoteClient localhost 8081 8080 infile
 
 rs: ## Run Server for testing, giving predefined parameters
 	@./remoteServer 8080 1
 
 run: ## Run both Client and Server for testing, giving predefined parameters
 	@echo "\e[34m---------------------- RUN EXECUTABLES -----------------------\e[39m"
-	@./remoteServer 8080 1 & ./remoteClient 127.0.0.1 1 8080 infile 
+	@./remoteServer 8080 1 & ./remoteClient localhost 8081 8080 infile 
 
-close:	## Kill all Client and Server Processes
+kill:	## Kill all Client and Server Processes
 	@clear
 	@echo "\e[34m--------------- KILL ALREADY RUNNING PROCESSES ---------------\e[39m"
 	@killall remoteServer && echo "\e[32mServer terminated successfully!\e[39m" || echo "\e[31mServer was not running.\e[39m"
@@ -83,3 +83,4 @@ remoteServer.o: remoteServer.c
 
 remoteClient.o: remoteClient.c
 	$(CC) $(CFLAGS) $?
+	

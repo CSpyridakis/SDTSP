@@ -7,18 +7,15 @@
 #include <sys/types.h>      // For sockets
 
 #include <netinet/in.h>     // Internet addresses are defined here
-
 #include <arpa/inet.h>
-
 #include <unistd.h>         // Fork
-
 #include <unistd.h>         // For Sleep
-
-# include <netdb.h>         // gethostbyaddr
+#include <netdb.h>          // gethostbyaddr
 
 #include "handling.h"
 
 #define _GNU_SOURCE //From read line example
+
 
 void menu(){
     printf("TODO\n");
@@ -32,7 +29,7 @@ void menu(){
     @return:
 */
 int receiveFromServer(char *process, int receivePort){
-    DEBUG("[%s] Try to connect to Server...", process);
+    DEBUG("%s-(%s) Try to connect to Server in order to receive responses...", CLIENT, process);
 }
 
 /**
@@ -43,34 +40,32 @@ int receiveFromServer(char *process, int receivePort){
     @return:
 */
 int sentToServer(char *process, char *serverName, int serverPort, char *inputFileWithCommands){
-    // File auxiliary variables and open file    
+    
+    DEBUG("%s-(%s) Get hostname...", CLIENT, process);
+    struct hostent *remote_addr; 
+    if(!(remote_addr= gethostbyname(serverName))){herror ("gethostbyname"); exit(EXIT_FAILURE);}
+
+    DEBUG("%s-(%s) Try to connect to Server in order to sent requests...", CLIENT, process);
+    
+    DEBUG("%s-(%s) Create Client Socket...", CLIENT, process);
+    int sockfd;
+    CHECKNO(sockfd=socket(AF_INET, SOCK_STREAM, 0));
+
+    DEBUG("%s-(%s) Convert IPv4 to binary form...", CLIENT, process);
+    struct sockaddr_in serv_addr;
+    serv_addr.sin_family = AF_INET; 
+    memcpy(&serv_addr.sin_addr , remote_addr->h_addr, remote_addr->h_length ) ;
+    serv_addr.sin_port = htons(serverPort);
+
+    DEBUG("%s-(%s) Client try to connect to server...", CLIENT, process);
+    CHECKNO(connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)));
+
+    DEBUG("%s-(%s) Open input file...", CLIENT, process);   
     FILE *fp;
     char *line = NULL ; size_t len = 0 ; ssize_t read;
     CHECKNU(fp = fopen(inputFileWithCommands, "r"));
 
-    DEBUG("[%s] Try to connect to Server...", process);
-    int sockfd;
-    struct hostent * rem ;
-    CHECKNU(rem = gethostbyname(serverName));
-    struct sockaddr_in serv_addr;
-    serv_addr.sin_family = AF_INET; 
-    serv_addr.sin_port = htons(serverPort);
-    
-    DEBUG("[%s] Create Client Socket...", process);
-    CHECKNO(sockfd=socket(AF_INET, SOCK_STREAM, 0));
-
-    DEBUG("[%s] Convert IPv4 to binary form...", process);
-    CHECKNO(inet_pton(AF_INET, serverName, &serv_addr.sin_addr));
-
-     
-    // memcpy(&serv_addr.sin_addr, rem->h_addr, rem->h_length);
-
-    // DEBUG("[%s] Connect to address: %s", process, serv_addr.sin_addr);
-
-
-    DEBUG("[%s] Client try to connect to server...", process);
-    CHECKNO(connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)));
-
+    DEBUG("%s-(%s) Start sending packets...", CLIENT, process);
     int cntMess = 0;
     while ((read = getline(&line, &len, fp)) != -1) {
 
@@ -96,18 +91,18 @@ int main(int argc, char *argv[]){
         exit(EXIT_FAILURE);
     }
 
-
     // Create local variables and copy input parameter to them
     char *serverName = parToVar(argv[1]);
     int serverPort = atoi(argv[2]);
     int receivePort = atoi(argv[3]);
     char *inputFileWithCommands = parToVar(argv[4]);
-    DEBUG("[Input Parameters] ServerName: %s, serverPort: %d, receivePort: %d, inputFileWithCommands: %s", serverName, serverPort, receivePort, inputFileWithCommands);
+    DEBUG("%s-(Input Parameters) ServerName: %s, serverPort: %d, receivePort: %d, inputFileWithCommands: %s", CLIENT, serverName, serverPort, receivePort, inputFileWithCommands);
     if (serverPort<1 || receivePort<1){
         fprintf(stderr, "Port parameters must be acceptable!\nPlease run %s -h to see properly usage\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
+    DEBUG("%s Create process for receiving messages...", CLIENT);
     pid_t childpid;
     CHECKNO(childpid = fork());
 

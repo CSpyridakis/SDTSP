@@ -1,40 +1,26 @@
 #include <stdio.h> 
+#include <stdlib.h> 
 #include <sys/socket.h> 
 #include <arpa/inet.h> 
 #include <unistd.h> 
 #include <string.h> 
+#include <netdb.h>          // gethostbyaddr
+#include "handling.h"
 #define PORT 8080 
    
-int main(int argc, char const *argv[]) 
-{ 
-    // int sock = 0; 
-    // struct sockaddr_in serv_addr; 
-    char *hello = "Hello from client"; 
-    char buffer[1024] = {0}; 
-    // if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) 
-    // { 
-    //     printf("\n Socket creation error \n"); 
-    //     return -1; 
-    // } 
-   
-    // serv_addr.sin_family = AF_INET; 
-    // serv_addr.sin_port = htons(PORT); 
-       
-    // Convert IPv4 and IPv6 addresses from text to binary form 
-    // if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)<=0)  
-    // { 
-    //     printf("\nInvalid address/ Address not supported \n"); 
-    //     return -1; 
-    // } 
-   
-    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) 
-    { 
-        printf("\nConnection Failed \n"); 
-        return -1; 
-    } 
-    send(sock , hello , strlen(hello) , 0 ); 
-    printf("Hello message sent\n"); 
-    valread = read( sock , buffer, 1024); 
-    printf("%s\n",buffer ); 
-    return 0; 
+int main(int argc, char const *argv[]) { 
+    struct hostent *mymachine = gethostbyname(argv[1]);
+    int i;
+    struct in_addr **addr_list;
+    char hostname [50] , symbolicip [50];
+    if(!mymachine){herror ("gethostbyname"); exit(EXIT_FAILURE);}
+    else{
+        printf ("Name To Be Resolved: %s \n" ,mymachine->h_name);
+        printf ("Name Length in Bytes: %d \n" ,mymachine->h_length);
+        addr_list=(struct in_addr **) mymachine->h_addr_list ;
+        for (i= 0; addr_list[i] != NULL ; i ++) {
+            strcpy (symbolicip, inet_ntoa(* addr_list[i]));
+            printf ("%s resolved to %s \n ", mymachine->h_name, symbolicip );
+        }
+    }
 } 

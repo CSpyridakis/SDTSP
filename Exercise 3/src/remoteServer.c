@@ -5,17 +5,12 @@
 #include <sys/wait.h>       // For sockets
 #include <sys/socket.h>     // For sockets
 #include <sys/types.h>      // For sockets
-
 #include <netinet/in.h>     // Internet addresses are defined here
-
 #include <arpa/inet.h>
-
 #include <unistd.h>         // Fork
-
 #include "handling.h"
 
 #define SERVER_BACKLOG 5
-
 
 void menu(){
     printf("TODO\n");
@@ -46,25 +41,25 @@ int receiveFromClient(char *process, int portNumber){
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     server_addr.sin_port = htons(portNumber);
 
-    DEBUG("[%s] Create Server Socket...", process);
+    DEBUG("%s-(%s) Create Server Socket...", SERVER, process);
     CHECKNO(sockfd=socket(AF_INET, SOCK_STREAM, 0)); 
 
-    DEBUG("[%s] Bind Server socket...", process);
+    DEBUG("%s-(%s) Bind Server socket...", SERVER, process);
     CHECKNO(bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)));
 
-    DEBUG("[%s] Listen socket...", process);
+    DEBUG("%s-(%s) Listen socket...", SERVER, process);
     CHECKNO(listen(sockfd, SERVER_BACKLOG));
 
-    DEBUG("[%s] Socket created successfully! Socket descriptor: %d", process, sockfd);
+    DEBUG("%s-(%s) Socket created successfully! Socket descriptor: %d", SERVER, process, sockfd);
 
     int addr_size, client_socket;
     struct sockaddr_in client_addr;
     while (1){
-        DEBUG("[%s] Waiting client to connect...", process);
+        DEBUG("%s-(%s) Waiting client to connect...", SERVER, process);
         addr_size = sizeof(struct sockaddr_in);
         
         CHECKNO(client_socket=accept(sockfd, (struct sockaddr*)&client_addr, (socklen_t *)&addr_size));
-        DEBUG("[%s] Client Connected", process);
+        DEBUG("%s-(%s) Client Connected", SERVER, process);
 
         handleConnections(client_socket);
     }
@@ -83,7 +78,7 @@ int main(int argc, char *argv[]){
     // Input parameters to variables 
     int portNumber = atoi(argv[1]);
     int numChildren = atoi(argv[2]);
-    DEBUG("[Input Parameters] portNumber: %d, numChildren: %d", portNumber, numChildren);
+    DEBUG("%s-(Input Parameters) portNumber: %d, numChildren: %d", SERVER, portNumber, numChildren);
     if (portNumber<1){
         fprintf(stderr, "Port parameters must be acceptable!\nPlease run %s -h to see properly usage\n", argv[0]);
         exit(EXIT_FAILURE);

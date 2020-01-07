@@ -11,18 +11,23 @@
 
 #define BUFSIZE 4096
 
-#define BLACK   "\033[30;7m"
 #define RED     "\033[31;1m"
 #define GREEN   "\033[32;1m"
 #define YELLOW  "\033[33;1m"
+#define BLUE    "\033[34;1m"
+#define PURPLE  "\033[35;1m"
+#define LBLUE   "\033[36;1m"
 #define WHITE   "\033[37;1m"
 #define NORMAL  "\033[0m"
+
+#define CLIENT  "[\033[35;1mCLIENT\033[37;1m]"
+#define SERVER  "[\033[36;1mSERVER\033[37;1m]"
 
 // For debug messages constraction
 char infoBuffer[BUFSIZE];
 
 // Print kind of message (DEBUG, ERROR) and actual text in stderr 
-#define PRINTMESS(kindof, mess) {fprintf(stderr, "[%s] %s{%s:%d}-(%s:%d)%s%s %s %s\n", kindof, YELLOW, __FILE__, __LINE__, __FUNCTION__, getpid(), NORMAL, WHITE, (mess), NORMAL);}
+#define PRINTMESS(kindof, mess) {fprintf(stderr, "[ %s ] %s{%s:%d}-(%s:%d)%s %s %s\n", kindof, YELLOW, __FILE__, __LINE__, __FUNCTION__, getpid(), WHITE, (mess), NORMAL);}
 
 // Create debug message, print it in stderr and empty infoBuffer
 #define DEBUG(mess...) {if (DEBUG_S) {snprintf(infoBuffer, sizeof(infoBuffer), mess); PRINTMESS(COLOR("DEBUG", GREEN), infoBuffer); strcpy(infoBuffer, "");}}
