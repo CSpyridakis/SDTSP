@@ -1,0 +1,5 @@
+*.o
+remoteClient
+remoteServer
+.vscode
+testing.c
