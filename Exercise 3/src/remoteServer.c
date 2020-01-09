@@ -12,6 +12,17 @@
 
 #define SERVER_BACKLOG 5
 
+double LAST_REQUEST;
+
+int timeout(){
+    double now=gettime();
+    // DEBUG("%f", now-LAST_REQUEST);
+    if(now-LAST_REQUEST>=TIMEOUT){
+       return 1; 
+    }
+    return 0;
+}
+
 void menu(){
     printf("Usage: ./remoteServer portNumber numChildren\n");
 }
@@ -45,6 +56,9 @@ int receiveFromClient(char *process, int portNumber){
     DEBUG("%s-(%s) Create Server Socket...", SERVER, process);
     CHECKNO(sockfd=socket(AF_INET, SOCK_STREAM, 0)); 
 
+    int option = 1;
+    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
+
     DEBUG("%s-(%s) Bind Server socket...", SERVER, process);
     CHECKNO(bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)));
 
@@ -55,22 +69,27 @@ int receiveFromClient(char *process, int portNumber){
 
     int addr_size, client_socket;
     struct sockaddr_in client_addr;
+    char *message = (char*) malloc(sizeof(char)*BUFSIZE);
+    
+    
     while (1){
         DEBUG("%s-(%s) Waiting client to connect...", SERVER, process);
         addr_size = sizeof(struct sockaddr_in);
         
         CHECKNO(client_socket=accept(sockfd, (struct sockaddr*)&client_addr, (socklen_t *)&addr_size));
         DEBUG("%s-(%s) Client connected successfully!", SERVER, process);
+        
+        LAST_REQUEST=gettime();
 
         while(1){
-            if(handleConnections("Parent", client_socket) == 1){ // TODO timeout
+            if(timeout() || handleConnections("Parent", client_socket) == 1){ // TODO timeout
                 close(client_socket);
                 DEBUG("%s-(%s) Closing current connection...", SERVER, process);
                 break;
             }
         }
     }
-     
+    free(message); 
 }
 
 //-------------------------------------------------------------------------
