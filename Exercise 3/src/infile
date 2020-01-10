@@ -14,3 +14,4 @@ end
 echo "One process killed"
 timeToStop
 echo "I must not be executed"
+ls ; ls -a
