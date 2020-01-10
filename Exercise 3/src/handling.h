@@ -1,8 +1,12 @@
 #ifndef HANDLING_H
 #define HANDLING_H
 
-// Change DEBUG_S to 1 to enable debug messages and to 0 to disable them 
-#define DEBUG_S 1
+#define bool int
+#define TRUE 1
+#define FALSE 0
+
+// Change DEBUG_S to TRUE to enable debug messages and to FALSE to disable them 
+#define DEBUG_S TRUE
 
 #include <stdio.h>
 #include <errno.h> 
@@ -10,6 +14,10 @@
 #include <stdlib.h>
 #include <time.h>
 #include <sys/time.h>
+
+
+#define ACC_COMMANDS_NO 5
+char ACCEPTABLE_COMMANDS[ACC_COMMANDS_NO][5] = {"ls", "grep", "cut", "cat", "tr"};
 
 double TIMEOUT=10;
 
@@ -81,7 +89,7 @@ char *COLOR(char *TEXT, char *COL){
 
     @return:  parToVar a pointer to the needed string
 */
-char *parToVar(char *par){
+char *parToVar(const char *par){
     int len = strlen(par);
     char *var;
     CHECKNU(var=(char*)malloc(len*sizeof(char)));
@@ -90,10 +98,82 @@ char *parToVar(char *par){
 }
 
 
+/**
+    @brief:
+
+    @param:
+
+    @return:
+*/
 double gettime() {
     struct timeval ttime;
     gettimeofday(&ttime, NULL);
     return ttime.tv_sec + ttime.tv_usec * 0.000001;
+}
+
+
+/**
+    @brief:
+
+    @param:
+
+    @return:
+*/
+bool startsWith(const char *pre, const char *str){
+   return strncmp(pre, str, strlen(pre)) == 0;
+}
+
+/**
+    @brief:
+
+    @param:
+
+    @return:
+*/
+int acceptableCommand(const char* command){
+    int i, ret;
+    for (i=0;i<ACC_COMMANDS_NO;i++){
+        if(ret=startsWith(ACCEPTABLE_COMMANDS[i], command)){
+            return i;
+        }
+    }
+    return -1;
+}
+
+/**
+    @brief:
+
+    @param:
+
+    @return:
+*/
+char **findValidCommands(char* string){
+
+    // TODO more than 100 chars drop command
+    
+    char *str;
+    CHECKNU(str=(char *)malloc(sizeof(string)));
+    str=string;
+    // Split until first semicolon or get whole line
+    char acceptFirstSemicolon[] = ";";
+	char *line = strtok(str, acceptFirstSemicolon);
+
+    printf("Acceptable Line: %s\n", line);
+
+    // TODO remove spacing 
+    // TODO fix "" problem
+    
+    char pipeDelimiter[] = "|";
+    char *command = strtok(line, pipeDelimiter);
+    while(command != NULL){
+        if(acceptableCommand(command)<0) {
+            break;
+        }
+        else{
+            printf( "Acceptable Command: %s\n", command );
+        }
+        command = strtok(NULL, pipeDelimiter);
+    }
 }
 
 #endif //HANDLING_H

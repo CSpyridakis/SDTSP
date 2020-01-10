@@ -86,6 +86,9 @@ int sentToServer(char *process, char *serverName, int serverPort, int receivePor
     snprintf(buffer, BUFSIZE, "EOF");
     CHECKNE(send(sockfd, buffer, BUFSIZE, 0));
     strcpy(buffer, "");
+    
+    //TODO
+    CHECKNE(shutdown(sockfd, SHUT_RDWR));
 
     DEBUG("%s-(%s) Client has sent all requests!", CLIENT, process);
     // Free resources and exit 

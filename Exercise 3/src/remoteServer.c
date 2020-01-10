@@ -10,17 +10,25 @@
 #include <unistd.h>         // Fork
 #include "handling.h"
 
+#include <signal.h>         /* signal */
+
 #define SERVER_BACKLOG 5
+
 
 double LAST_REQUEST;
 
-int timeout(){
+/* Wait for all dead child p r o c e s s e s */
+void sigchld_handler (int sig) {
+    while (waitpid(-1, NULL, WNOHANG) > 0) ;
+}
+
+bool timeout(){
     double now=gettime();
     // DEBUG("%f", now-LAST_REQUEST);
     if(now-LAST_REQUEST>=TIMEOUT){
-       return 1; 
+       return TRUE; 
     }
-    return 0;
+    return FALSE;
 }
 
 void menu(){
@@ -31,8 +39,8 @@ int handleConnections(char *process, int client_socket){
     char buffer[BUFSIZE];
     size_t bytes_read;
     int messageSize = 0;
-    CHECKNO(bytes_read = read(client_socket, buffer, BUFSIZE)); 
-    if(!strcmp(buffer, "EOF")) return 1;
+    CHECKNO(bytes_read = recv(client_socket, buffer, BUFSIZE, 0)); 
+    if(strcmp(buffer, "EOF")==0) return 1;
     DEBUG("%s-(%s) {REQUEST}: %s", SERVER, process, buffer); 
 
     return 0;
@@ -54,16 +62,17 @@ int receiveFromClient(char *process, int portNumber){
     server_addr.sin_port = htons(portNumber);
 
     DEBUG("%s-(%s) Create Server Socket...", SERVER, process);
-    CHECKNO(sockfd=socket(AF_INET, SOCK_STREAM, 0)); 
+    CHECKNE(sockfd=socket(AF_INET, SOCK_STREAM, 0)); 
 
-    int option = 1;
-    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
+    int reuse = 1;
+    DEBUG("%s-(%s) Address reuse...", SERVER, process);
+    CHECKNE(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const char*) &reuse, sizeof(reuse)));
 
     DEBUG("%s-(%s) Bind Server socket...", SERVER, process);
-    CHECKNO(bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)));
+    CHECKNE(bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)));
 
     DEBUG("%s-(%s) Listen socket...", SERVER, process);
-    CHECKNO(listen(sockfd, SERVER_BACKLOG));
+    CHECKNE(listen(sockfd, SERVER_BACKLOG));
 
     DEBUG("%s-(%s) Socket created successfully! Socket descriptor: %d", SERVER, process, sockfd);
 
@@ -71,18 +80,24 @@ int receiveFromClient(char *process, int portNumber){
     struct sockaddr_in client_addr;
     char *message = (char*) malloc(sizeof(char)*BUFSIZE);
     
-    
-    while (1){
+    struct sockaddr_in client ;
+    struct hostent *rem ;
+
+    while (TRUE){
         DEBUG("%s-(%s) Waiting client to connect...", SERVER, process);
         addr_size = sizeof(struct sockaddr_in);
         
         CHECKNO(client_socket=accept(sockfd, (struct sockaddr*)&client_addr, (socklen_t *)&addr_size));
         DEBUG("%s-(%s) Client connected successfully!", SERVER, process);
         
+        // CHECHNU(rem=gethostbyaddr((char *)&client.sin_addr.s_addr, sizeof(client.sin_addr.s_addr), client.sin_family)); 
+
+        // printf ( "Accepted connection from %s \n", rem->h_name ) ;
+
         LAST_REQUEST=gettime();
 
-        while(1){
-            if(timeout() || handleConnections("Parent", client_socket) == 1){ // TODO timeout
+        while(TRUE){
+            if(timeout() || handleConnections("Parent", client_socket) == 1){
                 close(client_socket);
                 DEBUG("%s-(%s) Closing current connection...", SERVER, process);
                 break;
@@ -114,6 +129,9 @@ int main(int argc, char *argv[]){
         fprintf(stderr, "Number of childrens must be acceptable\nPlease run %s -h to see properly usage\n", argv[0]);
         exit(EXIT_FAILURE);
     }
+
+    /* Reap dead children a s y n c h r o n o u s l y */
+    signal (SIGCHLD, sigchld_handler);
 
     // PROCESSES
     int FATHER=getpid();
