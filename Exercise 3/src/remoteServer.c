@@ -27,12 +27,14 @@ int handleConnections(char *process, int client_socket){
     
     strcpy(cp.command, comm); strcpy(com, cp.command);
     DEBUG("%s-(%s) \t #FILTERED# Line: [%d], Port: [%d], Addr: [%s], Command: [%s]\n",SERVER, process, cp.lineNumber, cp.port, add, com)
-    
+
+
+    sendDatagram(process, comm, cp.lineNumber, "localhost", cp.port); //TODO DELETE
+
     LAST_REQUEST=gettime(); // TODO : timeout
     return 0;
 }   
 
-// TODO in CTR + C signal in client send end to Server
 
 int receiveFromClient(char *process, int portNumber){
     

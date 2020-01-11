@@ -27,6 +27,7 @@ USAGE = Usage: make [OPTION]
 DESCRIPTION = 
 HELPMENU = $(USAGE)\n$(DESCRIPTION)\nOPTIONS:
 
+# Input parameters for debuging
 DEBUG_INPUT_FILE  = testin
 DEBUG_SERVER_PORT = 8080 
 DEBUG_CLIENT_PORT = 8081

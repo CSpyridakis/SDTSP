@@ -12,7 +12,44 @@ void menu(){
     @return:
 */
 int receiveFromServer(char *process, int receivePort){
-    DEBUG("%s-(%s) Try to connect to Server in order to receive responses...", CLIENT, process);
+
+    struct sockaddr_in server;
+    unsigned int serv_len;
+
+    DEBUG("%s-(%s) Create Client Socket...", CLIENT, process);
+    int sockfd;
+    CHECKNE(sockfd=socket(AF_INET, SOCK_DGRAM, 0));
+
+    // Init address struct
+    struct sockaddr_in receive_addr;
+    bzero(&receive_addr,sizeof(receive_addr));
+    receive_addr.sin_family = AF_INET;
+    receive_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    receive_addr.sin_port = htons(receivePort);
+
+    int reuse = 1;
+    DEBUG("%s-(%s) Address reuse...", CLIENT, process);
+    CHECKNE(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const char*) &reuse, sizeof(reuse)));
+
+    int ret;
+    DEBUG("%s-(%s) Bind client's socket...", CLIENT, process);
+    CHECKNE(ret = bind(sockfd, (struct sockaddr *)&receive_addr, sizeof(struct sockaddr)));
+
+    while(TRUE){    
+        serv_len = sizeof(server);
+        responsePackage rp;
+
+        if( ret = recvfrom(sockfd, &rp, sizeof(rp), 0, (struct sockaddr *)&server, &serv_len) < 0){
+            continue;
+        }   
+
+        char res[BUFSIZE];
+        strcpy(res, rp.response);
+        DEBUG("%s-(%s) \t #RECEIVED# Line: [%d] Response: [%s]", CLIENT, process, rp.lineNumber, res);
+        
+        writeToFile(process, receivePort, rp.lineNumber, res);
+    }
+    close(sockfd);
 }
 
 /**

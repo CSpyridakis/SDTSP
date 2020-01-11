@@ -150,6 +150,27 @@ double gettime() {
 }
 
 
+/**
+    @brief:
+
+    @param:
+
+    @return:
+*/
+int writeToFile(char * process, const int port, const int line, char * text){
+    char filename[BUFSIZE];
+    snprintf(filename, sizeof(filename), "output.%d\.%d", port, line);
+    DEBUG("%s-(%s) \t #APPEND TO FILE# Line: [%d] File to append: [%s] Response: [%s]", CLIENT, process, line, filename, text);
+
+    FILE *fPtr = fopen(filename, "a");
+    if(!fPtr){
+        DEBUG("%s-(%s) \t ERROR In opening file for appending", CLIENT, process);
+        return -1;
+    }
+    fputs(text, fPtr);
+    fclose(fPtr);
+    return 0;
+}
 
 
 
@@ -176,6 +197,11 @@ typedef struct address {
    int lineNumber; 
 } commandPackage;
 
+typedef struct response { 
+   char response[512]; 
+   int lineNumber; 
+} responsePackage;
+
 
 double LAST_REQUEST;
 
@@ -187,6 +213,30 @@ bool timeout(){
     return FALSE;
 }
 
+void sendDatagram(char * process, const char *message, const int line, const char * address, const int port){
+    DEBUG("%s-(%s) Create response socket...", SERVER, process);
+    int sockfd;
+    CHECKNO(sockfd=socket(AF_INET, SOCK_DGRAM, 0));
+
+    responsePackage rp;
+    strcpy(rp.response, message);
+    rp.lineNumber=line;
+
+    struct sockaddr_in server;
+    struct sockaddr * serverptr = (struct sockaddr *) &server ;
+    server.sin_family = AF_INET ;
+    server.sin_port = htons(port);
+    struct hostent *remote_addr; 
+    if(!(remote_addr=gethostbyname(address))){FATAL("ERROR with hostname!")}
+    server.sin_addr.s_addr = *(long *)(remote_addr->h_addr_list[0]);
+
+    int res = 0;
+    if(res = sendto(sockfd, &rp, sizeof(rp)+1, 0, (struct sockaddr *)&serverptr, sizeof (server)) < 0){
+        DEBUG("%s-(%s) ERROR In sending datagram...", SERVER, process);
+    }
+
+    close(sockfd);
+}
 
 
 // _________________________________________________________________________________________
