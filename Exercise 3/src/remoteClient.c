@@ -60,20 +60,25 @@ int receiveFromServer(char *process, int receivePort){
     @return:
 */
 int sentToServer(char *process, char *serverName, int serverPort, int receivePort, char *inputFileWithCommands){
-    
+
     char buffer[BUFSIZE];
 
     DEBUG("%s-(%s) Get hostname...", CLIENT, process);
-    struct hostent *remote_addr; 
+    struct hostent *remote_addr;
     if(!(remote_addr=gethostbyname(serverName))){FATAL("ERROR with hostname!")}
- 
+
+    DEBUG("%s-(%s) Open input file...", CLIENT, process);
+    FILE *fp;
+    char *line = NULL ; size_t len = 0 ; ssize_t read;
+    CHECKNU(fp = fopen(inputFileWithCommands, "r"));
+
     DEBUG("%s-(%s) Create Client Socket...", CLIENT, process);
     int sockfd;
     CHECKNO(sockfd=socket(AF_INET, SOCK_STREAM, 0));
 
     DEBUG("%s-(%s) Convert hostname to address form...", CLIENT, process);
     struct sockaddr_in serv_addr;
-    serv_addr.sin_family = AF_INET; 
+    serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(serverPort);
     serv_addr.sin_addr.s_addr = *(long *)(remote_addr->h_addr_list[0]);
 
@@ -81,11 +86,6 @@ int sentToServer(char *process, char *serverName, int serverPort, int receivePor
     CHECKNO(connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)));
 
     DEBUG("%s-(%s) Sent port that server will response...", CLIENT, process);
-
-    DEBUG("%s-(%s) Open input file...", CLIENT, process);   
-    FILE *fp;
-    char *line = NULL ; size_t len = 0 ; ssize_t read;
-    CHECKNU(fp = fopen(inputFileWithCommands, "r"));
 
     DEBUG("%s-(%s) Start sending packets...", CLIENT, process);
     int cntMess = 0;
@@ -101,7 +101,7 @@ int sentToServer(char *process, char *serverName, int serverPort, int receivePor
         char add[BUFSIZE]; strcpy(add, cp.address); char com[BUFSIZE]; strcpy(com, cp.command);
         DEBUG("%s-(%s) \t #Packet# Line: [%d], Port: [%d], Addr: [%s], Command: [%s]", CLIENT, process, cp.lineNumber, cp.port, add, com);
         CHECKNE(send(sockfd, &cp, sizeof(cp), 0));
-        
+
         cntMess++;
         if(cntMess%10==0) {sleep(SLEEP);};
     }
@@ -111,7 +111,7 @@ int sentToServer(char *process, char *serverName, int serverPort, int receivePor
     cp.port=receivePort;
     cp.lineNumber=cntMess+1;
     CHECKNE(send(sockfd, &cp, sizeof(cp), 0));
-    
+
     //TODO
     // CHECKNE(shutdown(sockfd, SHUT_RDWR));
 
@@ -123,7 +123,7 @@ int sentToServer(char *process, char *serverName, int serverPort, int receivePor
 
 //-------------------------------------------------------------------------
 int main(int argc, char *argv[]){
-    
+    signal(SIGPIPE, SIG_IGN);
     // Check input parameters
     if(argc == 2 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0 )) {menu() ; exit(EXIT_SUCCESS);}
     else if (argc != 5){
@@ -153,6 +153,6 @@ int main(int argc, char *argv[]){
         sentToServer("Parent", serverName, serverPort, receivePort, inputFileWithCommands);
     }
 
-    free(serverName) ; free(inputFileWithCommands) ; 
+    free(serverName) ; free(inputFileWithCommands) ;
     exit(EXIT_SUCCESS);
 }
