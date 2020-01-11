@@ -27,7 +27,7 @@ USAGE = Usage: make [OPTION]
 DESCRIPTION = 
 HELPMENU = $(USAGE)\n$(DESCRIPTION)\nOPTIONS:
 
-DEBUG_INPUT_FILE  = infile #testin
+DEBUG_INPUT_FILE  = testin
 DEBUG_SERVER_PORT = 8080 
 DEBUG_CLIENT_PORT = 8081
 DEBUG_SERVER_NAME = localhost
@@ -45,7 +45,6 @@ server: $(OBJS_SERVER)	## Create only server's executable
 	$(CC) -o $(OUTSERVER) $?
 
 clean:  ## Clean Object files and executables
-	@echo "\033[34m------ REMOVE OBJECT FILES, OUPUT FILES AND EXECUTABLES ------\033[39m"	# TODO: Comment out in production
 	$(RM) $(OBJS) $(OUTSERVER) $(OUTCLIENT)
 	$(RM) output.*.*
 
@@ -59,10 +58,7 @@ count:	## Count number of lines
 # ------------------------------------------------
 #			DEBUG RULES
 #
-debug: kill clean mess all run ## Clean, Make and Run both Client and Server for testing, giving predefined parameters
-	
-mess:
-	@echo "\033[34m-------------------------- COMPILE ---------------------------\033[39m"
+debug: kill clean all run ## Clean, Make and Run both Client and Server for testing, giving predefined parameters
 
 rc: ## Run Client for testing, giving predefined parameters
 	@./remoteClient $(DEBUG_SERVER_NAME) $(DEBUG_SERVER_PORT) $(DEBUG_CLIENT_PORT) $(DEBUG_INPUT_FILE) 
@@ -71,12 +67,10 @@ rs: ## Run Server for testing, giving predefined parameters
 	@./remoteServer $(DEBUG_SERVER_PORT) $(DEBUG_SERVER_KIDS)
 
 run: ## Run both Client and Server for testing, giving predefined parameters
-	@echo "\033[34m---------------------- RUN EXECUTABLES -----------------------\033[39m"
 	@./remoteServer $(DEBUG_SERVER_PORT) $(DEBUG_SERVER_KIDS) & ./remoteClient $(DEBUG_SERVER_NAME) $(DEBUG_SERVER_PORT) $(DEBUG_CLIENT_PORT) $(DEBUG_INPUT_FILE) 
 
 kill:	## Kill all Client and Server Processes
 	@clear
-	@echo "\033[34m--------------- KILL ALREADY RUNNING PROCESSES ---------------\033[39m"
 	@killall remoteServer && echo "\033[32mServer terminated successfully!\033[39m" || echo "\033[31mServer was not running.\033[39m"
 	@killall remoteClient && echo "\033[32mClient terminated successfully!\033[39m" || echo "\033[31mClient was not running.\033[39m"
 
