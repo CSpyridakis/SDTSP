@@ -159,7 +159,7 @@ double gettime() {
 */
 int writeToFile(char * process, const int port, const int line, char * text){
     char filename[BUFSIZE];
-    snprintf(filename, sizeof(filename), "output.%d\.%d", port, line);
+    snprintf(filename, sizeof(filename), "output.%d.%d", port, line);
     DEBUG("%s-(%s) \t #APPEND TO FILE# Line: [%d] File to append: [%s] Response: [%s]", CLIENT, process, line, filename, text);
 
     FILE *fPtr = fopen(filename, "a");
