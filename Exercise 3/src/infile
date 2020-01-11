@@ -6,6 +6,9 @@ ls -al /tmp/ | tr -s " " | cut -d" " -f1
 cat /etc/passwd | grep -c ":"
 ls -al /etc | cat | tr -s " " | grep "root" | cut -d" " -f3,4
 echo "Hello"
+
+;
+
 ls -alR /etc/ | touch file
 touch file | cat file
 seq 1 1 10 | grep -c 1 
@@ -15,3 +18,4 @@ echo "One process killed"
 timeToStop
 echo "I must not be executed"
 ls ; ls -a
+ls /tmp |    tr   ';' 'a' " \" hello \"" 

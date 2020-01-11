@@ -38,11 +38,16 @@ void menu(){
 int handleConnections(char *process, int client_socket){
     char buffer[BUFSIZE];
     size_t bytes_read;
-    int messageSize = 0;
-    CHECKNO(bytes_read = recv(client_socket, buffer, BUFSIZE, 0)); 
-    if(strcmp(buffer, "EOF")==0) return 1;
-    DEBUG("%s-(%s) {REQUEST}: %s", SERVER, process, buffer); 
-
+    commandPackage cp;
+    CHECKNO(bytes_read = recv(client_socket, &cp, sizeof(cp), 0)); 
+    if(strcmp(cp.command, "EOF")==0) return 1;
+    char add[BUFSIZE]; strcpy(add, cp.address); char com[BUFSIZE]; strcpy(com, cp.command);
+    DEBUG("%s-(%s) \t #REQUEST#  Line: [%d], Port: [%d], Addr: [%s], Command: [%s]", SERVER, process, cp.lineNumber, cp.port, add, com);
+    char comm[BUFSIZE];
+    commToExecute(cp.command, comm);
+    strcpy(cp.command, comm);
+    strcpy(com, cp.command);
+    DEBUG("%s-(%s) \t #FILTERED# Line: [%d], Port: [%d], Addr: [%s], Command: [%s]\n",SERVER, process, cp.lineNumber, cp.port, add, com)
     return 0;
 }   
 

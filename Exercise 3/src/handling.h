@@ -1,13 +1,6 @@
 #ifndef HANDLING_H
 #define HANDLING_H
 
-#define bool int
-#define TRUE 1
-#define FALSE 0
-
-// Change DEBUG_S to TRUE to enable debug messages and to FALSE to disable them 
-#define DEBUG_S TRUE
-
 #include <stdio.h>
 #include <errno.h> 
 #include <string.h>
@@ -15,13 +8,48 @@
 #include <time.h>
 #include <sys/time.h>
 
+#define bool int
+#define TRUE 1
+#define FALSE 0
 
-#define ACC_COMMANDS_NO 5
-char ACCEPTABLE_COMMANDS[ACC_COMMANDS_NO][5] = {"ls", "grep", "cut", "cat", "tr"};
+// Change DEBUG_S to TRUE to enable debug messages and to FALSE to disable them 
+#define DEBUG_S TRUE
+
+
+#define BUFSIZE 2048
+
+
+
+// _________________________________________________________________________________________
+//   ____             _        _       
+//  / ___|  ___   ___| | _____| |_ ___ 
+//  \___ \ / _ \ / __| |/ / _ \ __/ __|
+//   ___) | (_) | (__|   <  __/ |_\__ \
+//  |____/ \___/ \___|_|\_\___|\__|___/
+
+#define READ 0
+#define WRITE 1
 
 double TIMEOUT=10;
 
-#define BUFSIZE 2048
+// Package format to send on TCP
+typedef struct address { 
+   char command[BUFSIZE]; 
+   char address[BUFSIZE];
+   int port;
+   int lineNumber; 
+} commandPackage;
+
+
+
+
+// _________________________________________________________________________________________
+//    _____                         _                     _ _ _             
+//   | ____|_ __ _ __ ___  _ __    | |__   __ _ _ __   __| | (_)_ __   __ _ 
+//   |  _| | '__| '__/ _ \| '__|   | '_ \ / _` | '_ \ / _` | | | '_ \ / _` |
+//   | |___| |  | | | (_) | |      | | | | (_| | | | | (_| | | | | | | (_| |
+//   |_____|_|  |_|  \___/|_|      |_| |_|\__,_|_| |_|\__,_|_|_|_| |_|\__, |
+//                                                                    |___/ 
 
 #define RED     "\033[31;1m"
 #define GREEN   "\033[32;1m"
@@ -71,7 +99,7 @@ char infoBuffer[BUFSIZE];
     @see: Object-like Macros in the top of this header file
             for available colors.
 
-    @return: 
+    @return: a pointer to the needed string
 */
 char *COLOR(char *TEXT, char *COL){
     static char buf[256];
@@ -80,11 +108,22 @@ char *COLOR(char *TEXT, char *COL){
 }
 
 
-/**
-    @brief: Take a program's input parameter that is text and converts it
-            in variable (actualy a pointer in char) 
-            
 
+
+
+// _________________________________________________________________________________________
+//      _              _ _ _                  
+//     / \  _   ___  _(_) (_) __ _ _ __ _   _ 
+//    / _ \| | | \ \/ / | | |/ _` | '__| | | |
+//   / ___ \ |_| |>  <| | | | (_| | |  | |_| |
+//  /_/   \_\__,_/_/\_\_|_|_|\__,_|_|   \__, |
+//                                      |___/ 
+
+
+/**
+    @brief: Take a program's string input parameter and converts it
+            to a char * variable
+            
     @param: par the parameter that you want to read
 
     @return:  parToVar a pointer to the needed string
@@ -112,32 +151,57 @@ double gettime() {
 }
 
 
+
+
+
+// _________________________________________________________________________________________
+//    ____                                          _       ____    
+//   / ___|___  _ __ ___  _ __ ___   __ _ _ __   __| |     |  _ \ __ _ _ __ ___  ___ _ __ 
+//  | |   / _ \| '_ ` _ \| '_ ` _ \ / _` | '_ \ / _` |     | |_) / _` | '__/ __|/ _ \ '__|
+//  | |__| (_) | | | | | | | | | | | (_| | | | | (_| |     |  __/ (_| | |  \__ \  __/ | 
+//   \____\___/|_| |_| |_|_| |_| |_|\__,_|_| |_|\__,_|     |_|   \__,_|_|  |___/\___|_|
+//                                                      
+
+#define ACC_COMMANDS_NO 5
+char ACCEPTABLE_COMMANDS[ACC_COMMANDS_NO][5] = {"ls", "grep", "cut", "cat", "tr"};
+
 /**
-    @brief:
+    @brief: Check if the given command is valid. Actually check is exists in ACCEPTABLE_COMMANDS array.
 
-    @param:
+    @param: command is a string containing a word that need to be checked 
+            if is a supported command
 
-    @return:
+    @return: TRUE if is acceptable or else FALSE 
 */
-bool startsWith(const char *pre, const char *str){
-   return strncmp(pre, str, strlen(pre)) == 0;
+bool acceptableCommand(const char* command){
+    int i;
+    for (i=0;i<ACC_COMMANDS_NO;i++)
+        if(strncmp(ACCEPTABLE_COMMANDS[i], command, strlen(ACCEPTABLE_COMMANDS[i])) == 0)
+            return TRUE;
+        
+    return FALSE;
 }
 
 /**
-    @brief:
+    @brief: Find next 
 
     @param:
 
     @return:
 */
-int acceptableCommand(const char* command){
-    int i, ret;
-    for (i=0;i<ACC_COMMANDS_NO;i++){
-        if(ret=startsWith(ACCEPTABLE_COMMANDS[i], command)){
-            return i;
+int findNextCommand(int *start, const char* str){
+    int curPos = *start;
+    bool started = FALSE;
+    while(strlen(str) - curPos > 0){
+        if(started == FALSE && str[curPos] != ' ') {
+            *start = curPos;
+            started = TRUE;
         }
+        else if (started == TRUE && curPos+1 >= strlen(str)) return curPos;
+        else if (started == TRUE && str[curPos] == ' ') return curPos-1;
+        curPos++;
     }
-    return -1;
+    return strlen(str)-1;
 }
 
 /**
@@ -147,33 +211,94 @@ int acceptableCommand(const char* command){
 
     @return:
 */
-char **findValidCommands(char* string){
+int parseStr(int *start, const char* str){
+    int curPos = *start;
+    bool started = FALSE;
+    char strSymbol;
+    while(strlen(str) - curPos > 0){
+        if(str[curPos] == '\\' && curPos+1 >= strlen(str)) 
+            return strlen(str)-1; 
+        else if(str[curPos] == '\\' && (str[curPos+1] == '"' || str[curPos+1] == '\'')) 
+            curPos++;
+        else if (started == TRUE && str[curPos] == strSymbol) 
+            return curPos;
+        else if(started == FALSE && (str[curPos] == '\'' || str[curPos] == '"')){
+            *start=curPos; 
+            started=TRUE;
+            strSymbol=str[curPos];
+        }
+        curPos++;
+    }
+    return strlen(str)-1;
+}
 
-    // TODO more than 100 chars drop command
-    
-    char *str;
-    CHECKNU(str=(char *)malloc(sizeof(string)));
-    str=string;
-    // Split until first semicolon or get whole line
-    char acceptFirstSemicolon[] = ";";
-	char *line = strtok(str, acceptFirstSemicolon);
+/**
+    @brief:
 
-    printf("Acceptable Line: %s\n", line);
+    @param:
 
-    // TODO remove spacing 
-    // TODO fix "" problem
-    
-    char pipeDelimiter[] = "|";
-    char *command = strtok(line, pipeDelimiter);
-    while(command != NULL){
-        if(acceptableCommand(command)<0) {
-            break;
+    @return:
+*/
+int parseLine(const char* str){
+    int  retPos=0, next, curPos=0, tmpPos=curPos;
+    bool commParsed = FALSE;
+    char curCommand[2000];
+
+    if (strlen(str)>100) return -1;
+
+    while(strlen(str) - curPos > 0){
+        if (commParsed == FALSE) {
+            commParsed = TRUE;
+            tmpPos=curPos;
+            next = findNextCommand(&tmpPos, str);
+            strncpy (curCommand, str + tmpPos, next - tmpPos + 1);
+            curCommand[next - tmpPos + 1]='\0';
+
+            if (strcmp(curCommand, "end") == 0) return -2;
+            else if (strcmp(curCommand, "timeToStop") == 0) return -3;
+            else if (acceptableCommand(curCommand) == FALSE) return retPos;
+
+            curPos = next;
+            retPos = next;
+        }
+        else if (commParsed == TRUE && str[curPos] == ' ') {;}
+        else if (commParsed == TRUE && str[curPos] == '"' || str[curPos] == '\'') {
+            tmpPos=curPos;
+            next = parseStr(&tmpPos, str);
+            curPos = next;
+            retPos = next;
+        }
+        else if (commParsed == TRUE && str[curPos] == ';') return retPos;
+        else if (commParsed == TRUE && str[curPos] == '|') {
+            commParsed = FALSE;
         }
         else{
-            printf( "Acceptable Command: %s\n", command );
+            retPos=curPos;
         }
-        command = strtok(NULL, pipeDelimiter);
+        curPos++;
     }
+    return retPos;
+}
+
+/**
+    @brief:
+
+    @param:
+
+    @return:
+*/
+void commToExecute(const char * line, char *command){
+    int i=parseLine(line);
+    
+    if (i>0){
+        strncpy (command, line , i+1);
+        command[i+1]='\0';
+    }
+    else if (i==0)  strcpy(command, "");
+    else if (i==-1) strcpy(command, "");
+    else if (i==-2) strcpy(command, "end");
+    else if (i==-3) strcpy(command, "timeToStop");
+    else strcpy(command, "");
 }
 
 #endif //HANDLING_H

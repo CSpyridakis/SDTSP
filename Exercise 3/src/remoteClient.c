@@ -61,9 +61,6 @@ int sentToServer(char *process, char *serverName, int serverPort, int receivePor
     CHECKNO(connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)));
 
     DEBUG("%s-(%s) Sent port that server will response...", CLIENT, process);
-    // snprintf(buffer, BUFSIZE, "Port: %d", receivePort);
-    // CHECKNO(send(sockfd, buffer, BUFSIZE, 0));
-    // strcpy(buffer, "");
 
     DEBUG("%s-(%s) Open input file...", CLIENT, process);   
     FILE *fp;
@@ -73,19 +70,27 @@ int sentToServer(char *process, char *serverName, int serverPort, int receivePor
     DEBUG("%s-(%s) Start sending packets...", CLIENT, process);
     int cntMess = 0;
     while ((read = getline(&line, &len, fp)) != -1) {
+        //Create the command package
+        commandPackage cp;
+        if (line[strlen(line)-1]=='\n') line[strlen(line)-1]='\0';
+        strcpy(cp.command, line);
+        strcpy(cp.address, "address"); //TODO
+        cp.port=receivePort;
+        cp.lineNumber=cntMess+1;
 
-        // Send packet
-        DEBUG("%s-(%s) Packet no: %d data to send: %s", CLIENT, process, cntMess, line);
-        snprintf(buffer, BUFSIZE, "%d:%s", cntMess, line);
-        CHECKNE(send(sockfd, buffer, BUFSIZE, 0));
-        strcpy(buffer, "");
+        char add[BUFSIZE]; strcpy(add, cp.address); char com[BUFSIZE]; strcpy(com, cp.command);
+        DEBUG("%s-(%s) \t #Packet# Line: [%d], Port: [%d], Addr: [%s], Command: [%s]", CLIENT, process, cp.lineNumber, cp.port, add, com);
+        CHECKNE(send(sockfd, &cp, sizeof(cp), 0));
         
         cntMess++;
         if(cntMess%10==0) {sleep(5);};
     }
-    snprintf(buffer, BUFSIZE, "EOF");
-    CHECKNE(send(sockfd, buffer, BUFSIZE, 0));
-    strcpy(buffer, "");
+    commandPackage cp;
+    strcpy(cp.command, "EOF");
+    strcpy(cp.address, "address"); //TODO
+    cp.port=receivePort;
+    cp.lineNumber=cntMess+1;
+    CHECKNE(send(sockfd, &cp, sizeof(cp), 0));
     
     //TODO
     CHECKNE(shutdown(sockfd, SHUT_RDWR));
