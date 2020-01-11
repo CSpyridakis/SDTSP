@@ -5,6 +5,11 @@
 #include <errno.h> 
 #include <string.h>
 #include <stdlib.h>
+
+#include <sys/wait.h>       // For sockets
+#include <sys/socket.h>     // For sockets
+#include <sys/types.h>      // For sockets
+
 #include <time.h>
 #include <sys/time.h>
 
@@ -30,17 +35,29 @@
 #define READ 0
 #define WRITE 1
 
+#define SLEEP 1
+
 double TIMEOUT=10;
+
+// TIMEOUT on
+ 
 
 // Package format to send on TCP
 typedef struct address { 
-   char command[BUFSIZE]; 
-   char address[BUFSIZE];
+   char command[512]; 
+   char address[512];
    int port;
    int lineNumber; 
 } commandPackage;
 
-
+double LAST_REQUEST;
+bool timeout(){
+    double now=gettime();
+    if(now-LAST_REQUEST>=TIMEOUT){
+       return TRUE; 
+    }
+    return FALSE;
+}
 
 
 // _________________________________________________________________________________________
@@ -289,16 +306,16 @@ int parseLine(const char* str){
 */
 void commToExecute(const char * line, char *command){
     int i=parseLine(line);
-    
+    printf("\n----------------------------- [%d] ------------------------\n",i);
     if (i>0){
         strncpy (command, line , i+1);
         command[i+1]='\0';
     }
     else if (i==0)  strcpy(command, "");
     else if (i==-1) strcpy(command, "");
-    else if (i==-2) strcpy(command, "end");
+    else if (i==-2) {strcpy(command, "end");}
     else if (i==-3) strcpy(command, "timeToStop");
-    else strcpy(command, "");
+    // else strcpy(command, "");
 }
 
 #endif //HANDLING_H

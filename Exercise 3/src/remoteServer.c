@@ -2,9 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <sys/wait.h>       // For sockets
-#include <sys/socket.h>     // For sockets
-#include <sys/types.h>      // For sockets
+
 #include <netinet/in.h>     // Internet addresses are defined here
 #include <arpa/inet.h>
 #include <unistd.h>         // Fork
@@ -15,21 +13,12 @@
 #define SERVER_BACKLOG 5
 
 
-double LAST_REQUEST;
-
-/* Wait for all dead child p r o c e s s e s */
+/* Wait for all dead child processes */
 void sigchld_handler (int sig) {
     while (waitpid(-1, NULL, WNOHANG) > 0) ;
 }
 
-bool timeout(){
-    double now=gettime();
-    // DEBUG("%f", now-LAST_REQUEST);
-    if(now-LAST_REQUEST>=TIMEOUT){
-       return TRUE; 
-    }
-    return FALSE;
-}
+
 
 void menu(){
     printf("Usage: ./remoteServer portNumber numChildren\n");

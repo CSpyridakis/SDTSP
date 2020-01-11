@@ -83,7 +83,7 @@ int sentToServer(char *process, char *serverName, int serverPort, int receivePor
         CHECKNE(send(sockfd, &cp, sizeof(cp), 0));
         
         cntMess++;
-        if(cntMess%10==0) {sleep(5);};
+        if(cntMess%10==0) {sleep(SLEEP);};
     }
     commandPackage cp;
     strcpy(cp.command, "EOF");
@@ -93,7 +93,7 @@ int sentToServer(char *process, char *serverName, int serverPort, int receivePor
     CHECKNE(send(sockfd, &cp, sizeof(cp), 0));
     
     //TODO
-    CHECKNE(shutdown(sockfd, SHUT_RDWR));
+    // CHECKNE(shutdown(sockfd, SHUT_RDWR));
 
     DEBUG("%s-(%s) Client has sent all requests!", CLIENT, process);
     // Free resources and exit 

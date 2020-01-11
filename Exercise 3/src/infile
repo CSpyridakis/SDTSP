@@ -19,3 +19,20 @@ timeToStop
 echo "I must not be executed"
 ls ; ls -a
 ls /tmp |    tr   ';' 'a' " \" hello \"" 
+
+ls -alR /etc/ | touch file
+touch file | cat file
+seq 1 1 10 | grep -c 1 
+ls -al /tmp/
+end 
+echo "One process killed"
+timeToStop
+echo "I must not be executed"
+ls ; ls -a
+ls /tmp |    tr   ';' 'a' " \" hello \"" 
+ls aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+end
+ls aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab
+end
+ls aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabc
+end

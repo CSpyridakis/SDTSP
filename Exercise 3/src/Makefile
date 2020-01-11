@@ -27,6 +27,11 @@ USAGE = Usage: make [OPTION]
 DESCRIPTION = 
 HELPMENU = $(USAGE)\n$(DESCRIPTION)\nOPTIONS:
 
+DEBUG_INPUT_FILE  = testin
+DEBUG_SERVER_PORT = 8080 
+DEBUG_CLIENT_PORT = 8081
+DEBUG_SERVER_NAME = localhost
+DEBUG_SERVER_KIDS = 3
 
 # ----------------------------------------------------
 # 					Basic options
@@ -60,14 +65,14 @@ mess:
 	@echo "\033[34m-------------------------- COMPILE ---------------------------\033[39m"
 
 rc: ## Run Client for testing, giving predefined parameters
-	@./remoteClient localhost 8080 8081 infile
+	@./remoteClient $(DEBUG_SERVER_NAME) $(DEBUG_SERVER_PORT) $(DEBUG_CLIENT_PORT) $(DEBUG_INPUT_FILE) 
 
 rs: ## Run Server for testing, giving predefined parameters
-	@./remoteServer 8080 3
+	@./remoteServer $(DEBUG_SERVER_PORT) $(DEBUG_SERVER_KIDS)
 
 run: ## Run both Client and Server for testing, giving predefined parameters
 	@echo "\033[34m---------------------- RUN EXECUTABLES -----------------------\033[39m"
-	@./remoteServer 8080 3 & ./remoteClient localhost 8080 8081 infile 
+	@./remoteServer $(DEBUG_SERVER_PORT) $(DEBUG_SERVER_KIDS) & ./remoteClient $(DEBUG_SERVER_NAME) $(DEBUG_SERVER_PORT) $(DEBUG_CLIENT_PORT) $(DEBUG_INPUT_FILE) 
 
 kill:	## Kill all Client and Server Processes
 	@clear
