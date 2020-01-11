@@ -1,24 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-
-#include <netinet/in.h>     // Internet addresses are defined here
-#include <arpa/inet.h>
-#include <unistd.h>         // Fork
 #include "handling.h"
 
-#include <signal.h>         /* signal */
-
 #define SERVER_BACKLOG 5
-
 
 /* Wait for all dead child processes */
 void sigchld_handler (int sig) {
     while (waitpid(-1, NULL, WNOHANG) > 0) ;
 }
-
-
 
 void menu(){
     printf("Usage: ./remoteServer portNumber numChildren\n");
@@ -30,13 +17,18 @@ int handleConnections(char *process, int client_socket){
     commandPackage cp;
     CHECKNO(bytes_read = recv(client_socket, &cp, sizeof(cp), 0)); 
     if(strcmp(cp.command, "EOF")==0) return 1;
-    char add[BUFSIZE]; strcpy(add, cp.address); char com[BUFSIZE]; strcpy(com, cp.command);
+    
+    char add[BUFSIZE]; char com[BUFSIZE]; char comm[BUFSIZE];
+    
+    strcpy(add, cp.address);  strcpy(com, cp.command);
     DEBUG("%s-(%s) \t #REQUEST#  Line: [%d], Port: [%d], Addr: [%s], Command: [%s]", SERVER, process, cp.lineNumber, cp.port, add, com);
-    char comm[BUFSIZE];
-    commToExecute(cp.command, comm);
-    strcpy(cp.command, comm);
-    strcpy(com, cp.command);
+    
+    commToExecute(cp.command, comm); 
+    
+    strcpy(cp.command, comm); strcpy(com, cp.command);
     DEBUG("%s-(%s) \t #FILTERED# Line: [%d], Port: [%d], Addr: [%s], Command: [%s]\n",SERVER, process, cp.lineNumber, cp.port, add, com)
+    
+    LAST_REQUEST=gettime(); // TODO : timeout
     return 0;
 }   
 
@@ -138,9 +130,7 @@ int main(int argc, char *argv[]){
         //     sleep (3) ;
         // }
     }
-    if (FATHER==getpid())
-    {
-        DEBUG("FPID=%d...................GETPID=%d",FATHER,getpid());
+    if (FATHER==getpid()){
         receiveFromClient("Parent", portNumber);
     }
     

@@ -1,22 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <sys/wait.h>       // For sockets
-#include <sys/socket.h>     // For sockets
-#include <sys/types.h>      // For sockets
-
-#include <netinet/in.h>     // Internet addresses are defined here
-#include <arpa/inet.h>
-#include <unistd.h>         // Fork
-#include <unistd.h>         // For Sleep
-#include <netdb.h>          // gethostbyaddr
-
 #include "handling.h"
 
-#define _GNU_SOURCE //From read line example
-
- 
 void menu(){
     printf("Usage: ./remoteClient serverName serverPort receivePort inputFileWithCommands\n");
 }

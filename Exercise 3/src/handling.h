@@ -1,17 +1,28 @@
 #ifndef HANDLING_H
 #define HANDLING_H
 
+// Basic
 #include <stdio.h>
-#include <errno.h> 
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
-#include <sys/wait.h>       // For sockets
-#include <sys/socket.h>     // For sockets
-#include <sys/types.h>      // For sockets
+#include <errno.h> 
+
+// For sockets
+#include <sys/wait.h>       
+#include <sys/socket.h>     
+#include <sys/types.h>      
 
 #include <time.h>
 #include <sys/time.h>
+
+#include <netinet/in.h>     // Internet addresses are defined here
+#include <arpa/inet.h>
+
+#include <unistd.h>         // Fork
+#include <netdb.h>          // gethostbyaddr
+
+#include <signal.h>         // signals 
 
 #define bool int
 #define TRUE 1
@@ -20,44 +31,15 @@
 // Change DEBUG_S to TRUE to enable debug messages and to FALSE to disable them 
 #define DEBUG_S TRUE
 
-
+// Buffer size for messages and more
 #define BUFSIZE 2048
 
-
-
-// _________________________________________________________________________________________
-//   ____             _        _       
-//  / ___|  ___   ___| | _____| |_ ___ 
-//  \___ \ / _ \ / __| |/ / _ \ __/ __|
-//   ___) | (_) | (__|   <  __/ |_\__ \
-//  |____/ \___/ \___|_|\_\___|\__|___/
-
-#define READ 0
-#define WRITE 1
-
-#define SLEEP 1
-
-double TIMEOUT=10;
-
-// TIMEOUT on
+// From read line example
+#ifndef _GNU_SOURCE
+    #define _GNU_SOURCE        
+#endif
  
 
-// Package format to send on TCP
-typedef struct address { 
-   char command[512]; 
-   char address[512];
-   int port;
-   int lineNumber; 
-} commandPackage;
-
-double LAST_REQUEST;
-bool timeout(){
-    double now=gettime();
-    if(now-LAST_REQUEST>=TIMEOUT){
-       return TRUE; 
-    }
-    return FALSE;
-}
 
 
 // _________________________________________________________________________________________
@@ -171,6 +153,42 @@ double gettime() {
 
 
 
+
+// _________________________________________________________________________________________
+//   ____             _        _       
+//  / ___|  ___   ___| | _____| |_ ___ 
+//  \___ \ / _ \ / __| |/ / _ \ __/ __|
+//   ___) | (_) | (__|   <  __/ |_\__ \
+//  |____/ \___/ \___|_|\_\___|\__|___/
+
+#define READ 0
+#define WRITE 1
+
+#define SLEEP 1
+
+double TIMEOUT=10;
+
+// Package format to send on TCP
+typedef struct address { 
+   char command[512]; 
+   char address[512];
+   int port;
+   int lineNumber; 
+} commandPackage;
+
+
+double LAST_REQUEST;
+
+bool timeout(){
+    double now=gettime();
+    if(now-LAST_REQUEST>=TIMEOUT){
+       return TRUE; 
+    }
+    return FALSE;
+}
+
+
+
 // _________________________________________________________________________________________
 //    ____                                          _       ____    
 //   / ___|___  _ __ ___  _ __ ___   __ _ _ __   __| |     |  _ \ __ _ _ __ ___  ___ _ __ 
@@ -271,8 +289,8 @@ int parseLine(const char* str){
             strncpy (curCommand, str + tmpPos, next - tmpPos + 1);
             curCommand[next - tmpPos + 1]='\0';
 
-            if (strcmp(curCommand, "end") == 0) return -2;
-            else if (strcmp(curCommand, "timeToStop") == 0) return -3;
+            if (strcmp(curCommand, "end") == 0 || strcmp(curCommand, "end ") == 0) return -2;
+            else if (strcmp(curCommand, "timeToStop") == 0 || strcmp(curCommand, "timeToStop ") == 0) return -3;
             else if (acceptableCommand(curCommand) == FALSE) return retPos;
 
             curPos = next;
@@ -306,16 +324,14 @@ int parseLine(const char* str){
 */
 void commToExecute(const char * line, char *command){
     int i=parseLine(line);
-    printf("\n----------------------------- [%d] ------------------------\n",i);
     if (i>0){
         strncpy (command, line , i+1);
         command[i+1]='\0';
     }
     else if (i==0)  strcpy(command, "");
     else if (i==-1) strcpy(command, "");
-    else if (i==-2) {strcpy(command, "end");}
+    else if (i==-2) strcpy(command, "end");
     else if (i==-3) strcpy(command, "timeToStop");
-    // else strcpy(command, "");
 }
 
 #endif //HANDLING_H
