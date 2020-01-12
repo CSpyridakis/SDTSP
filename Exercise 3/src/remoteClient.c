@@ -13,7 +13,6 @@ void menu(){
 */
 int receiveFromServer(char *process, int receivePort){
 
-    struct sockaddr_in server;
     unsigned int serv_len;
 
     DEBUG("%s-(%s) Create Client Socket...", CLIENT, process);
@@ -35,6 +34,8 @@ int receiveFromServer(char *process, int receivePort){
     DEBUG("%s-(%s) Bind client's socket...", CLIENT, process);
     CHECKNE(ret = bind(sockfd, (struct sockaddr *)&receive_addr, sizeof(struct sockaddr)));
 
+    // init address struct
+    struct sockaddr_in server;
     while(TRUE){    
         serv_len = sizeof(server);
         responsePackage rp;

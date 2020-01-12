@@ -13,6 +13,7 @@ void sigchld_handler(int sig);
 void runServer(int numChildren, int portNumber);
 void runChild(int pip[2]);
 void runParent(int pip[2], int mstsockfd, struct sockaddr_in client_addr);
+int commandExecution(char *givenCommand);
 
 //-------------------------------------------------------------------------
 int main(int argc, char *argv[])
@@ -107,25 +108,122 @@ void runServer(int numChildren, int portNumber)
     else if (childpid == 0)
     {
         runChild(pip);
+        DEBUG(" child got killed.");
     }
-    else{
-        DEBUG("<<<<<<<<<<<<<<<<NEITHER FATHER NOR CHILD>>>>>>>>>>>>>>>>>>")
+    else
+    {
+        DEBUG("<<<<<<<<<<<<<<<<< NEITHER FATHER NOR CHILD >>>>>>>>>>>>>>>>>>")
     }
 }
 
 void runChild(int pip[2])
 {
     commandPackage reccp;
+    //term getting value from commandExecution
+    // term == -1   timeToStop
+    // term == 0    end
+    // term == 1    the command executed
+    int term, ret;
     while (TRUE)
     {
-        read(pip[READ], &reccp, sizeof(commandPackage));
-        DEBUG("READING --- command %d:    %s", reccp.lineNumber, reccp.command);
-        if (strcmp(reccp.command, "end") == 0)
+        ret=read(pip[READ], &reccp, sizeof(commandPackage));
+        char add[BUFSIZE]; strcpy(add, reccp.address); char com[BUFSIZE]; strcpy(com, reccp.command);
+        // DEBUG("%s-(Child) \t #Receive# Line: [%d], Port: [%d], Addr: [%s], Command: [%s]", SERVER, reccp.lineNumber, reccp.port, add, com);
+        term = commandExecution(reccp.command);
+        if (term == 0)
         {
-            DEBUG("READING command %s", reccp.command);
-            break;
+            // DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>    %s", reccp.command);
+            // break;
+        }
+        else if (term == -1)
+        {
+            // DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>    %s", reccp.command);
         }
     }
+}
+
+/**
+    @brief: 
+    Calling only by children. Take a command from the pipe client, gives it to parser and execute the returned command via popen(). 
+
+    @param: 
+    The command about to execute via popen()
+    
+    @return:
+    return == -1   timeToStop
+    return == 0    end
+    return == 1    the command executed
+*/
+int commandExecution(char *givenCommand)
+{   
+
+    char command[BUFSIZE];
+    //GIve the line to parser and take the command via "command"
+    int comRetVal = commToExecute(givenCommand, command);
+    // DEBUG("COMMAND GOT IS : %s", command);
+    FILE *fp, *sp;
+    char path[512];
+    if (strcmp(command, "end") == 0)
+    {   
+        return 0;
+    }
+    else if (strcmp(command, "timeToStop") == 0)
+    {
+        return -1;
+    }
+    else
+    {
+        // char execCommand[BUFSIZE] = "echo | ";
+        // if (comRetVal==0)
+        //     strcat(execCommand, command);
+        // /* Open the command for reading. */
+        // fp = popen(execCommand, "r");
+        // if (fp == NULL)
+        // {
+        //     printf("Failed to run command\n");
+        //     exit(1);
+        // }
+        // int buffSize = 512;
+        // char *newBuffer = (char *)malloc(buffSize);
+        // char buf[15];
+        // snprintf(buf, 15 , "CHILD %d \n", getpid());
+        // strcpy(newBuffer, buf );
+        // /* Read the output a line at a time - output it. */
+        // while (fgets(path, sizeof(path), fp) != NULL)
+        // {   
+        //     if (strlen(newBuffer) + strlen(path) < buffSize)
+        //     {
+        //         strcat(newBuffer, path);
+        //     }
+        //     else
+        //     {
+        //         char *sendinBuf = (char *)malloc(4096);
+        //         strcpy(sendinBuf, "echo \" ");
+        //         strcat(sendinBuf, newBuffer);
+        //         char buf2[30];
+        //         char * token = strtok(command, " ");
+        //         snprintf(buf2, 30 , "\" >> ./results/%s.txt ", token);
+        //         strcat(sendinBuf, buf2);
+        //         sp = popen(sendinBuf, "r");
+        //         /* close */
+        //         pclose(sp);
+        //         newBuffer = (char *)malloc(buffSize);
+        //     }
+        // }
+        // pclose(fp);
+        // char *sendinBuf = (char *)malloc(4096);
+        // strcpy(sendinBuf, "echo \" ");
+        // strcat(sendinBuf, newBuffer);
+        // char buf2[30];
+        // char * token = strtok(command, " ");
+        // snprintf(buf2, 30 , "\" >> ./results/%s.txt ", token);
+        // strcat(sendinBuf, buf2);
+        // fp = popen(sendinBuf, "r");
+        // /* close */
+        // pclose(fp);
+        // DEBUG("FINISHED....................");
+    }
+    return 1;
 }
 
 void runParent(int pip[2], int mstsockfd, struct sockaddr_in client_addr)
@@ -153,13 +251,17 @@ void runParent(int pip[2], int mstsockfd, struct sockaddr_in client_addr)
     {
         addr_size = sizeof(struct sockaddr_in);
         CHECKNO(client_socket = accept(mstsockfd, (struct sockaddr *)&client_addr, (socklen_t *)&addr_size));
-        DEBUG("%s-(%s) Client connected successfully!", SERVER, "Parent");
+        char ip[30];
+        strcpy(ip, (char*)inet_ntoa((struct in_addr)client_addr.sin_addr));
+        DEBUG("%s-(%s) Client connected successfully Address: [%s] Port: [%d]", SERVER, "Parent", ip, client_addr.sin_port);
 
+        int ret;
         while (TRUE)
         {
             size_t bytes_read;
             commandPackage cp;
             CHECKNO(bytes_read = recv(client_socket, &cp, sizeof(commandPackage), 0));
+            sendDatagram("Parent", cp.command, cp.lineNumber, client_addr, cp.port);
             if (strcmp(cp.command, "EOF") == 0)
             {
                 close(client_socket);
@@ -167,7 +269,7 @@ void runParent(int pip[2], int mstsockfd, struct sockaddr_in client_addr)
                 DEBUG("%s-(%s) Closing current connection...", SERVER, "Parent");
                 break;
             }
-            write(pip[WRITE], &cp, sizeof(commandPackage));
+            ret=write(pip[WRITE], &cp, sizeof(commandPackage));
         }
     }
 }

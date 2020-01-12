@@ -213,25 +213,23 @@ bool timeout(){
     return FALSE;
 }
 
-void sendDatagram(char * process, const char *message, const int line, const char * address, const int port){
-    DEBUG("%s-(%s) Create response socket...", SERVER, process);
+void sendDatagram(char * process, const char *message, const int line, struct sockaddr_in server_addr, const int port){
+    DEBUG("%s-(%s) ~~~ Create ~~~ response socket...", SERVER, process);
     int sockfd;
     CHECKNO(sockfd=socket(AF_INET, SOCK_DGRAM, 0));
 
+    server_addr.sin_port=port;
+    
     responsePackage rp;
     strcpy(rp.response, message);
     rp.lineNumber=line;
 
-    struct sockaddr_in server;
-    struct sockaddr * serverptr = (struct sockaddr *) &server ;
-    server.sin_family = AF_INET ;
-    server.sin_port = htons(port);
-    struct hostent *remote_addr; 
-    if(!(remote_addr=gethostbyname(address))){FATAL("ERROR with hostname!")}
-    server.sin_addr.s_addr = *(long *)(remote_addr->h_addr_list[0]);
-
+    char ip[30];
+    strcpy(ip, (char*)inet_ntoa((struct in_addr)server_addr.sin_addr));
+    DEBUG("%s-(%s) Sent to Address: [%s] Port: [%d] text [%s]", SERVER, "Parent", ip, server_addr.sin_port, message);
+    
     int res = 0;
-    if(res = sendto(sockfd, &rp, sizeof(rp)+1, 0, (struct sockaddr *)&serverptr, sizeof (server)) < 0){
+    if(res = sendto(sockfd, &rp, sizeof(rp)+1, 0, (struct sockaddr *)&server_addr, sizeof (server_addr)) < 0){
         DEBUG("%s-(%s) ERROR In sending datagram...", SERVER, process);
     }
 
@@ -372,16 +370,18 @@ int parseLine(const char* str){
 
     @return:
 */
-void commToExecute(const char * line, char *command){
+int commToExecute(const char * line, char *command){
+    int ret=0;
     int i=parseLine(line);
     if (i>0){
         strncpy (command, line , i+1);
         command[i+1]='\0';
     }
-    else if (i==0)  strcpy(command, "");
-    else if (i==-1) strcpy(command, "");
-    else if (i==-2) strcpy(command, "end");
-    else if (i==-3) strcpy(command, "timeToStop");
+    else if (i==0)  {strcpy(command, "");ret=-1;}
+    else if (i==-1) {strcpy(command, "");ret=-1;}
+    else if (i==-2) {strcpy(command, "end");ret=-2;}
+    else if (i==-3) {strcpy(command, "timeToStop");ret=-3;}
+    return ret;
 }
 
 #endif //HANDLING_H
