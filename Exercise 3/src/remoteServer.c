@@ -126,9 +126,9 @@ void runChild(int pip[2])
     int term, ret;
     while (TRUE)
     {
-        ret=read(pip[READ], &reccp, sizeof(commandPackage));
+        ret = read(pip[READ], &reccp, sizeof(commandPackage));
         char add[BUFSIZE]; strcpy(add, reccp.address); char com[BUFSIZE]; strcpy(com, reccp.command);
-        // DEBUG("%s-(Child) \t #Receive# Line: [%d], Port: [%d], Addr: [%s], Command: [%s]", SERVER, reccp.lineNumber, reccp.port, add, com);
+        DEBUG("%s-(Child) \t #Receive# Line: [%d], Port: [%d], Addr: [%s], Command: [%s]", SERVER, reccp.lineNumber, reccp.port, add, com);
         term = commandExecution(reccp.command);
         if (term == 0)
         {
@@ -164,7 +164,7 @@ int commandExecution(char *givenCommand)
     FILE *fp, *sp;
     char path[512];
     if (strcmp(command, "end") == 0)
-    {   
+    {
         return 0;
     }
     else if (strcmp(command, "timeToStop") == 0)
@@ -223,7 +223,6 @@ int commandExecution(char *givenCommand)
         // pclose(fp);
         // DEBUG("FINISHED....................");
     }
-    return 1;
 }
 
 void runParent(int pip[2], int mstsockfd, struct sockaddr_in client_addr)
@@ -251,9 +250,7 @@ void runParent(int pip[2], int mstsockfd, struct sockaddr_in client_addr)
     {
         addr_size = sizeof(struct sockaddr_in);
         CHECKNO(client_socket = accept(mstsockfd, (struct sockaddr *)&client_addr, (socklen_t *)&addr_size));
-        char ip[30];
-        strcpy(ip, (char*)inet_ntoa((struct in_addr)client_addr.sin_addr));
-        DEBUG("%s-(%s) Client connected successfully Address: [%s] Port: [%d]", SERVER, "Parent", ip, client_addr.sin_port);
+        DEBUG("%s-(%s) Client connected successfully!", SERVER, "Parent");
 
         int ret;
         while (TRUE)
@@ -261,7 +258,6 @@ void runParent(int pip[2], int mstsockfd, struct sockaddr_in client_addr)
             size_t bytes_read;
             commandPackage cp;
             CHECKNO(bytes_read = recv(client_socket, &cp, sizeof(commandPackage), 0));
-            sendDatagram("Parent", cp.command, cp.lineNumber, client_addr, cp.port);
             if (strcmp(cp.command, "EOF") == 0)
             {
                 close(client_socket);
@@ -269,7 +265,7 @@ void runParent(int pip[2], int mstsockfd, struct sockaddr_in client_addr)
                 DEBUG("%s-(%s) Closing current connection...", SERVER, "Parent");
                 break;
             }
-            ret=write(pip[WRITE], &cp, sizeof(commandPackage));
+            ret = write(pip[WRITE], &cp, sizeof(commandPackage));
         }
     }
 }
