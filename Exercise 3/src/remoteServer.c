@@ -258,6 +258,7 @@ void runParent(int pip[2], int mstsockfd, struct sockaddr_in client_addr)
             size_t bytes_read;
             commandPackage cp;
             CHECKNO(bytes_read = recv(client_socket, &cp, sizeof(commandPackage), 0));
+            sendDatagram("Child", cp.command, cp.lineNumber, client_addr, cp.port);
             if (strcmp(cp.command, "EOF") == 0)
             {
                 close(client_socket);

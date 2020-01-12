@@ -26,9 +26,9 @@ int receiveFromServer(char *process, int receivePort){
     receive_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     receive_addr.sin_port = htons(receivePort);
 
-    int reuse = 1;
-    DEBUG("%s-(%s) Address reuse...", CLIENT, process);
-    CHECKNE(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const char*) &reuse, sizeof(reuse)));
+    // int reuse = 1;
+    // DEBUG("%s-(%s) Address reuse...", CLIENT, process);
+    // CHECKNE(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const char*) &reuse, sizeof(reuse)));
 
     int ret;
     DEBUG("%s-(%s) Bind client's socket...", CLIENT, process);
@@ -48,7 +48,7 @@ int receiveFromServer(char *process, int receivePort){
         strcpy(res, rp.response);
         DEBUG("%s-(%s) \t #RECEIVED# Line: [%d] Response: [%s]", CLIENT, process, rp.lineNumber, res);
         
-        writeToFile(process, receivePort, rp.lineNumber, res);
+        // writeToFile(process, receivePort, rp.lineNumber, res);
     }
     close(sockfd);
 }
