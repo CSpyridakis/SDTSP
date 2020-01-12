@@ -80,7 +80,11 @@ void runServer(int numChildren, int portNumber)
     CHECKNE(bind(mstsockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)));
     DEBUG("%s-(%s) Listen socket...", SERVER, "Parent");
     CHECKNE(listen(mstsockfd, SERVER_BACKLOG));
-    DEBUG("%s-(%s) Socket created successfully! Socket descriptor: %d", SERVER, "Parent", mstsockfd);
+
+    char ip[30];
+    strcpy(ip, (char*)inet_ntoa((struct in_addr)server_addr.sin_addr));
+    DEBUG("%s-(%s) Socket created successfully! In ip [%s], port [%d], socket descriptor [%d]", SERVER, "Parent", ip, portNumber, mstsockfd);
+    
     DEBUG("%s FATHER's PID %d...", SERVER, FATHER);
 
     // PIPE creation
@@ -143,12 +147,12 @@ void runChild(int pip[2])
         else if (term == -1)
         {
             DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>    %s", reccp.command);
-        }
+        }     
         else
         {
             response(rechp,rechp.cp.command);
         }
-        
+           
         
     }
 }

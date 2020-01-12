@@ -28,11 +28,14 @@ DESCRIPTION =
 HELPMENU = $(USAGE)\n$(DESCRIPTION)\nOPTIONS:
 
 # Input parameters for debuging
-DEBUG_INPUT_FILE  = infile
+DEBUG_INPUT_FILE  = simple #infile
 DEBUG_SERVER_PORT = 8080 
 DEBUG_CLIENT_PORT = 8081
 DEBUG_SERVER_NAME = localhost
 DEBUG_SERVER_KIDS = 3
+
+# TODO remove
+tu: kill clean all
 
 # ----------------------------------------------------
 # 					Basic options

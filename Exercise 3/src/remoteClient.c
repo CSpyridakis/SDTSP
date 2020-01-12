@@ -13,43 +13,55 @@ void menu(){
 */
 int receiveFromServer(char *process, int receivePort){
 
+    int sockfd, reuse = 1, ret;
+
     unsigned int serv_len;
 
-    DEBUG("%s-(%s) Create Client Socket...", CLIENT, process);
-    int sockfd;
-    CHECKNE(sockfd=socket(AF_INET, SOCK_DGRAM, 0));
-
-    // Init address struct
+     // Init address struct
     struct sockaddr_in receive_addr;
     bzero(&receive_addr,sizeof(receive_addr));
+    memset(&receive_addr, 0, sizeof(receive_addr)); 
     receive_addr.sin_family = AF_INET;
-    receive_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    receive_addr.sin_addr.s_addr = INADDR_ANY;
     receive_addr.sin_port = htons(receivePort);
 
-    int reuse = 1;
+    char ip[30];
+    strcpy(ip, (char*)inet_ntoa((struct in_addr)receive_addr.sin_addr));
+
+    DEBUG("%s-(%s) Create Client Socket...", CLIENT, process);
+    CHECKNE(sockfd=socket(AF_INET, SOCK_DGRAM, 0));
     DEBUG("%s-(%s) Address reuse...", CLIENT, process);
     CHECKNE(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const char*) &reuse, sizeof(reuse)));
-
-    int ret;
+    // struct timeval tv;
+    // tv.tv_sec = 15;
+    // CHECKNE(setsockopt(sockfd,SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)));
     DEBUG("%s-(%s) Bind client's socket...", CLIENT, process);
     CHECKNE(ret = bind(sockfd, (struct sockaddr *)&receive_addr, sizeof(struct sockaddr)));
-
+    DEBUG("%s-(%s) UDP listener created in ip [%s], port [%d], socket descriptor [%d]", CLIENT, process, ip, receivePort, sockfd);
+    
     // init address struct
     struct sockaddr_in server;
+    double startConn=gettime();
     while(TRUE){    
         serv_len = sizeof(server);
         responsePackage rp;
 
-        if( ret = recvfrom(sockfd, &rp, sizeof(rp), 0, (struct sockaddr *)&server, &serv_len) < 0){
+        ret = recvfrom(sockfd, &rp, sizeof(rp), 0, (struct sockaddr *)&server, &serv_len);
+
+        if( ret < 0){
+            DEBUG("%s-(%s)    \033[31;1m[ERROR]\033[37;1m In receiving package", CLIENT, process);
             continue;
         }   
 
         char res[BUFSIZE];
         strcpy(res, rp.response);
-        DEBUG("%s-(%s) \t \033[35;1m[Received]\033[37;1m Line: [%d] Response: [%s]", CLIENT, process, rp.lineNumber, res);
+        DEBUG("%s-(%s)    \033[35;1m[Received]\033[37;1m Line: [%d] Response: [%s]", CLIENT, process, rp.lineNumber, res);
         
-        // writeToFile(process, receivePort, rp.lineNumber, res);
+        if(strcmp(res, "EOC") == 0){break;}
+
+        writeToFile(process, receivePort, rp.lineNumber, res);
     }
+    DEBUG("%s-(%s) Close receiving process", CLIENT, process);
     close(sockfd);
 }
 
@@ -85,8 +97,6 @@ int sentToServer(char *process, char *serverName, int serverPort, int receivePor
 
     DEBUG("%s-(%s) Client try to connect to server...", CLIENT, process);
     CHECKNO(connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)));
-
-    DEBUG("%s-(%s) Sent port that server will response...", CLIENT, process);
 
     DEBUG("%s-(%s) Start sending packets...", CLIENT, process);
     int cntMess = 0;
