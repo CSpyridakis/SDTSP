@@ -202,8 +202,9 @@ typedef struct handler {
    struct sockaddr_in client_addr; 
 } handlePackage;
 
+#define TEXT_RESPONSE_LEN 300 
 typedef struct response { 
-   char response[512]; 
+   char response[TEXT_RESPONSE_LEN]; 
    int lineNumber; 
 } responsePackage;
 
@@ -218,8 +219,9 @@ bool timeout(){
     return FALSE;
 }
 
+
 void sendDatagram(char * process, const char *message, const int line, struct sockaddr_in server_addr, const int port){
-    DEBUG("%s-(%s) ~~~ Create ~~~ response socket...", SERVER, process);
+    // DEBUG("%s-(%s) ~~~ Create ~~~ response socket...", SERVER, process);
     int sockfd;
     CHECKNO(sockfd=socket(AF_INET, SOCK_DGRAM, 0));
 
@@ -231,7 +233,7 @@ void sendDatagram(char * process, const char *message, const int line, struct so
 
     char ip[30];
     strcpy(ip, (char*)inet_ntoa((struct in_addr)server_addr.sin_addr));
-    DEBUG("%s-(%s) \t Response Package Line: [%d], Port: [%d], Addr: [%s], Text: [%s]", SERVER, process, rp.lineNumber, server_addr.sin_port, ip, rp.response);
+    DEBUG("%s-(%s)    \033[33;1m[Response]\033[37;1m Package Line: [%d], Port: [%d], Addr: [%s], Text: [%s]", SERVER, process, rp.lineNumber, server_addr.sin_port, ip, rp.response);
     int res = 0;
     if(res = sendto(sockfd, &rp, sizeof(rp)+1, 0, (struct sockaddr *)&server_addr, sizeof (server_addr)) < 0){
         DEBUG("%s-(%s) ERROR In sending datagram...", SERVER, process);
@@ -239,6 +241,10 @@ void sendDatagram(char * process, const char *message, const int line, struct so
 
     close(sockfd);
 }
+
+int response(handlePackage hp, char * text){
+    sendDatagram("Child", text, hp.cp.lineNumber, hp.client_addr, hp.cp.port);
+} 
 
 // _________________________________________________________________________________________
 //    ____                                          _       ____    
@@ -382,9 +388,9 @@ int commToExecute(const char * line, char *command){
     }
     else if (i==0)  {strcpy(command, "");ret=-1;}
     else if (i==-1) {strcpy(command, "");ret=-1;}
-    else if (i==-2) strcpy(command, "end");
-    else if (i==-3) strcpy(command, "timeToStop");
-        return ret;
+    else if (i==-2) {strcpy(command, "end");ret=-2;}
+    else if (i==-3) {strcpy(command, "timeToStop");ret=-3;}
+    return ret;
 }
 
 #endif //HANDLING_H

@@ -26,9 +26,9 @@ int receiveFromServer(char *process, int receivePort){
     receive_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     receive_addr.sin_port = htons(receivePort);
 
-    // int reuse = 1;
-    // DEBUG("%s-(%s) Address reuse...", CLIENT, process);
-    // CHECKNE(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const char*) &reuse, sizeof(reuse)));
+    int reuse = 1;
+    DEBUG("%s-(%s) Address reuse...", CLIENT, process);
+    CHECKNE(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const char*) &reuse, sizeof(reuse)));
 
     int ret;
     DEBUG("%s-(%s) Bind client's socket...", CLIENT, process);
@@ -46,7 +46,7 @@ int receiveFromServer(char *process, int receivePort){
 
         char res[BUFSIZE];
         strcpy(res, rp.response);
-        DEBUG("%s-(%s) \t #RECEIVED# Line: [%d] Response: [%s]", CLIENT, process, rp.lineNumber, res);
+        DEBUG("%s-(%s) \t \033[35;1m[Received]\033[37;1m Line: [%d] Response: [%s]", CLIENT, process, rp.lineNumber, res);
         
         // writeToFile(process, receivePort, rp.lineNumber, res);
     }
@@ -95,12 +95,12 @@ int sentToServer(char *process, char *serverName, int serverPort, int receivePor
         commandPackage cp;
         if (line[strlen(line)-1]=='\n') line[strlen(line)-1]='\0';
         strcpy(cp.command, line);
-        strcpy(cp.address, "address"); //TODO
+        strcpy(cp.address, ""); //TODO
         cp.port=receivePort;
         cp.lineNumber=cntMess+1;
 
         char add[BUFSIZE]; strcpy(add, cp.address); char com[BUFSIZE]; strcpy(com, cp.command);
-        DEBUG("%s-(%s) \t #Packet# Line: [%d], Port: [%d], Addr: [%s], Command: [%s]", CLIENT, process, cp.lineNumber, cp.port, add, com);
+        DEBUG("%s-(%s)    \033[34;1m[Packet data]\033[37;1m Line: [%d], Port: [%d], Addr: [%s], Command: [%s]", CLIENT, process, cp.lineNumber, cp.port, add, com);
         CHECKNE(send(sockfd, &cp, sizeof(cp), 0));
 
         cntMess++;
@@ -108,7 +108,7 @@ int sentToServer(char *process, char *serverName, int serverPort, int receivePor
     }
     commandPackage cp;
     strcpy(cp.command, "EOF");
-    strcpy(cp.address, "address"); //TODO
+    strcpy(cp.address, ""); //TODO
     cp.port=receivePort;
     cp.lineNumber=cntMess+1;
     CHECKNE(send(sockfd, &cp, sizeof(cp), 0));

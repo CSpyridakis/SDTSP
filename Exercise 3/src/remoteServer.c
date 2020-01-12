@@ -95,7 +95,7 @@ void runServer(int numChildren, int portNumber)
             childpid = fork();
             CHECKNE(childpid);
             if (childpid > 0)
-                DEBUG(" i : % d process ID : % d parent ID :% d child ID :% d \n ", i, getpid(), getppid(), childpid);
+                DEBUG("%s (Create processes) i : % d process ID : % d parent ID :% d child ID :% d", SERVER, i, getpid(), getppid(), childpid);
         }
     }
     if (getpid() == FATHER)
@@ -119,6 +119,7 @@ void runServer(int numChildren, int portNumber)
 void runChild(int pip[2])
 {
     commandPackage reccp;
+    handlePackage rechp;
     //term getting value from commandExecution
     // term == -1   timeToStop
     // term == 0    end
@@ -126,19 +127,29 @@ void runChild(int pip[2])
     int term, ret;
     while (TRUE)
     {
-        ret = read(pip[READ], &reccp, sizeof(commandPackage));
-        char add[BUFSIZE]; strcpy(add, reccp.address); char com[BUFSIZE]; strcpy(com, reccp.command);
-        DEBUG("%s-(Child) \t #Receive# Line: [%d], Port: [%d], Addr: [%s], Command: [%s]", SERVER, reccp.lineNumber, reccp.port, add, com);
+        ret=read(pip[READ], &rechp, sizeof(handlePackage));
+        reccp = rechp.cp;
         term = commandExecution(reccp.command);
+        char com[BUFSIZE];
+        strcpy(com, reccp.command);
+        char ip[30];
+        strcpy(ip, (char*)inet_ntoa((struct in_addr)rechp.client_addr.sin_addr));
+        DEBUG("%s-(Child)    \033[32;1m[Received]\033[37;1m Line: [%d], Send to Port: [%d], Addr: [%s], Command: [%s]", SERVER, reccp.lineNumber, reccp.port, ip, com);
         if (term == 0)
         {
-            // DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>    %s", reccp.command);
+            DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>    %s", reccp.command);
             // break;
         }
         else if (term == -1)
         {
-            // DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>    %s", reccp.command);
+            DEBUG(">>>>>>>>>>>>>>>>>>>>>>>>    %s", reccp.command);
         }
+        else
+        {
+            response(rechp,rechp.cp.command);
+        }
+        
+        
     }
 }
 
@@ -155,7 +166,7 @@ void runChild(int pip[2])
     return == 1    the command executed
 */
 int commandExecution(char *givenCommand)
-{   
+{
 
     char command[BUFSIZE];
     //GIve the line to parser and take the command via "command"
@@ -165,14 +176,18 @@ int commandExecution(char *givenCommand)
     char path[512];
     if (strcmp(command, "end") == 0)
     {
+        // DEBUG("END-%s", command);
         return 0;
     }
     else if (strcmp(command, "timeToStop") == 0)
     {
+        // DEBUG("END-%s", command);
         return -1;
     }
     else
     {
+        return 1;
+
         // char execCommand[BUFSIZE] = "echo | ";
         // if (comRetVal==0)
         //     strcat(execCommand, command);
@@ -190,7 +205,7 @@ int commandExecution(char *givenCommand)
         // strcpy(newBuffer, buf );
         // /* Read the output a line at a time - output it. */
         // while (fgets(path, sizeof(path), fp) != NULL)
-        // {   
+        // {
         //     if (strlen(newBuffer) + strlen(path) < buffSize)
         //     {
         //         strcat(newBuffer, path);
@@ -223,6 +238,7 @@ int commandExecution(char *givenCommand)
         // pclose(fp);
         // DEBUG("FINISHED....................");
     }
+    // return 1;
 }
 
 void runParent(int pip[2], int mstsockfd, struct sockaddr_in client_addr)
@@ -249,6 +265,7 @@ void runParent(int pip[2], int mstsockfd, struct sockaddr_in client_addr)
     if (FD_ISSET(mstsockfd, &readfds))
     {
         addr_size = sizeof(struct sockaddr_in);
+        //TODO chgange to handlepackage struct
         CHECKNO(client_socket = accept(mstsockfd, (struct sockaddr *)&client_addr, (socklen_t *)&addr_size));
         DEBUG("%s-(%s) Client connected successfully!", SERVER, "Parent");
 
@@ -257,8 +274,9 @@ void runParent(int pip[2], int mstsockfd, struct sockaddr_in client_addr)
         {
             size_t bytes_read;
             commandPackage cp;
+            handlePackage hp;
+            
             CHECKNO(bytes_read = recv(client_socket, &cp, sizeof(commandPackage), 0));
-            sendDatagram("Child", cp.command, cp.lineNumber, client_addr, cp.port);
             if (strcmp(cp.command, "EOF") == 0)
             {
                 close(client_socket);
@@ -266,7 +284,10 @@ void runParent(int pip[2], int mstsockfd, struct sockaddr_in client_addr)
                 DEBUG("%s-(%s) Closing current connection...", SERVER, "Parent");
                 break;
             }
-            ret = write(pip[WRITE], &cp, sizeof(commandPackage));
+            hp.client_addr = client_addr;
+            hp.cp = cp;
+            // Write the handlepackage
+            ret=write(pip[WRITE], &hp, sizeof(handlePackage));
         }
     }
 }
