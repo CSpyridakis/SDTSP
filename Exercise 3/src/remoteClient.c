@@ -1,5 +1,17 @@
 #include "handling.h"
 
+volatile double LAST_RECEIVED;
+#define ALARM_TIME 10
+
+void alarm_handler(){
+    signal(SIGALRM, alarm_handler);
+    if(gettime()-LAST_RECEIVED>=TIMEOUT){
+        DEBUG("%s-(%s) [TIMEOUT] Close receiving process", CLIENT, "Child");
+        exit(EXIT_SUCCESS);
+    }
+    alarm(ALARM_TIME);
+}
+
 void menu(){
     printf("Usage: ./remoteClient serverName serverPort receivePort inputFileWithCommands\n");
 }
@@ -13,6 +25,7 @@ void menu(){
 */
 int receiveFromServer(char *process, int receivePort){
 
+    signal(SIGALRM, alarm_handler);
     int sockfd, reuse = 1, ret;
 
     unsigned int serv_len;
@@ -42,6 +55,8 @@ int receiveFromServer(char *process, int receivePort){
     // init address struct
     struct sockaddr_in server;
     double startConn=gettime();
+    LAST_RECEIVED=gettime();
+    alarm(ALARM_TIME);
     while(TRUE){    
         serv_len = sizeof(server);
         responsePackage rp;
@@ -108,6 +123,13 @@ int sentToServer(char *process, char *serverName, int serverPort, int receivePor
         strcpy(cp.address, ""); //TODO
         cp.port=receivePort;
         cp.lineNumber=cntMess+1;
+
+        if (strlen(line) + 1 >= BUFSIZE){
+            PRINTMESS(COLOR("ERROR", YELLOW), "Line is bigger than BUFSIZE"); 
+            cntMess++ ; 
+            if(cntMess%10==0) {sleep(SLEEP);};
+            continue;
+        }
 
         char add[BUFSIZE]; strcpy(add, cp.address); char com[BUFSIZE]; strcpy(com, cp.command);
         DEBUG("%s-(%s)    \033[34;1m[Packet data]\033[37;1m Line: [%d], Port: [%d], Addr: [%s], Command: [%s]", CLIENT, process, cp.lineNumber, cp.port, add, com);

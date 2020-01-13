@@ -28,14 +28,12 @@ DESCRIPTION =
 HELPMENU = $(USAGE)\n$(DESCRIPTION)\nOPTIONS:
 
 # Input parameters for debuging
-DEBUG_INPUT_FILE  = simple #infile
+DEBUG_INPUT_FILE  = infile
 DEBUG_SERVER_PORT = 8080 
 DEBUG_CLIENT_PORT = 8081
 DEBUG_SERVER_NAME = localhost
-DEBUG_SERVER_KIDS = 3
+DEBUG_SERVER_KIDS = 4
 
-# TODO remove
-tu: kill clean all
 
 # ----------------------------------------------------
 # 					Basic options
@@ -74,7 +72,6 @@ run: ## Run both Client and Server for testing, giving predefined parameters
 	@./remoteServer $(DEBUG_SERVER_PORT) $(DEBUG_SERVER_KIDS) & ./remoteClient $(DEBUG_SERVER_NAME) $(DEBUG_SERVER_PORT) $(DEBUG_CLIENT_PORT) $(DEBUG_INPUT_FILE) 
 
 kill:	## Kill all Client and Server Processes
-	@clear
 	@killall remoteServer && echo "\033[32mServer terminated successfully!\033[39m" || echo "\033[31mServer was not running.\033[39m"
 	@killall remoteClient && echo "\033[32mClient terminated successfully!\033[39m" || echo "\033[31mClient was not running.\033[39m"
 

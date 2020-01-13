@@ -3,3 +3,4 @@ remoteClient
 remoteServer
 .vscode
 testing.c
+output.*.*

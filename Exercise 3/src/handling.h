@@ -11,8 +11,7 @@
 // For sockets
 #include <sys/wait.h>       
 #include <sys/socket.h>     
-#include <sys/types.h>      
-
+     
 #include <time.h>
 #include <sys/time.h>
 
@@ -22,7 +21,9 @@
 #include <unistd.h>         // Fork
 #include <netdb.h>          // gethostbyaddr
 
-#include <signal.h>         // signals 
+// signals
+#include <signal.h>         
+#include <sys/types.h>  
 
 #define bool int
 #define TRUE 1
@@ -118,6 +119,8 @@ char *COLOR(char *TEXT, char *COL){
 //  /_/   \_\__,_/_/\_\_|_|_|\__,_|_|   \__, |
 //                                      |___/ 
 
+#define ALIVE 1
+#define DEAD  0
 
 /**
     @brief: Take a program's string input parameter and converts it
@@ -172,7 +175,28 @@ int writeToFile(char * process, const int port, const int line, char * text){
     return 0;
 }
 
+// _________________________________________________________________________________________
+//   ____  _                   _     
+//  / ___|(_) __ _ _ __   __ _| |___ 
+//  \___ \| |/ _` | '_ \ / _` | / __|
+//   ___) | | (_| | | | | (_| | \__ \
+//  |____/|_|\__, |_| |_|\__,_|_|___/
+//           |___/    
+#define SIGEND SIGUSR1
+#define SIGTTS SIGUSR2
 
+
+
+// void endChild(int sig, siginfo_t *info, void *context){
+//     signal(SIGEND, endChild); 
+
+//     fprintf(stderr, "End\n");
+// }
+
+// void timeToStop(int sig, siginfo_t *info, void *context){
+//     signal(SIGTTS, timeToStop);
+//     fprintf(stderr, "TimeToStop\n");
+// }
 
 
 // _________________________________________________________________________________________
@@ -191,8 +215,8 @@ double TIMEOUT=10;
 
 // Package format to send on TCP
 typedef struct address { 
-   char command[512]; 
-   char address[512];
+   char command[1024]; 
+   char address[1024];
    int port;
    int lineNumber; 
 } commandPackage;
@@ -202,7 +226,7 @@ typedef struct handler {
    struct sockaddr_in client_addr; 
 } handlePackage;
 
-#define TEXT_RESPONSE_LEN 300 
+#define TEXT_RESPONSE_LEN 450 
 typedef struct response { 
    char response[TEXT_RESPONSE_LEN]; 
    int lineNumber; 
