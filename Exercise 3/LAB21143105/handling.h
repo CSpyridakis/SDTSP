@@ -30,7 +30,7 @@
 #define FALSE 0
 
 // Change DEBUG_S to TRUE to enable debug messages and to FALSE to disable them 
-#define DEBUG_S TRUE 
+#define DEBUG_S FALSE 
 
 // Buffer size for messages and more
 #define BUFSIZE 2048
