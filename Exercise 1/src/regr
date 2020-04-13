@@ -5,7 +5,7 @@
 #
 #   Author : Spyridakis Christos
 #   Created Date : 8/10/2019
-#   Last Updated : 18/10/2019
+#   Last Updated : 23/10/2019
 #   Email : spyridakischristos@gmail.com
 #
 #   Description : Calculate Linear Regression coefficients that minimize linear regression standard 
@@ -20,7 +20,7 @@
 
 # Use regular expression to validate input files
 LINEREGEX="^[-]?([0-9]+[\.,]?|[0-9]*[\.,][0-9]+):[-]?([0-9]+[\.,]?|[0-9]*[\.,][0-9]+)$"        
-#For input testing: ^[-]?([0-9]{1,10}[\.,]?|[0-9]{0,10}[\.,][0-9]{1,10}):[-]?([0-9]{1,10}[\.,]?|[0-9]{0,10}[\.,][0-9]{1,10})$
+#For input crash test: ^[-]?([0-9]{1,10}[\.,]?|[0-9]{0,10}[\.,][0-9]{1,10}):[-]?([0-9]{1,10}[\.,]?|[0-9]{0,10}[\.,][0-9]{1,10})$
 
 # Auxiliary variables 
 DEC=10               #Number of decimals of precision for calculations
@@ -309,7 +309,7 @@ if [ ! -z ${ERRORS_FILE} ] ; then echo -n "" > "${ERRORS_FILE}" ; fi ;
 
 # Remaining Arguments
 shift $(($OPTIND - 1))  # Move to the next args
-remainingArgs=$(echo $* | tr -s " " | tr "," " ") # Squeeze extra spaces and tranlate every comma to space. Remember valid input is also this: file1,file2,file3... 
+remainingArgs=$(echo $* | tr -s " " | tr "," " ") # Squeeze extra spaces and tranlate every comma to space. Remember valid input could also be in theory: file1,file2,file3... 
 if [ ${DEBUG} -eq ${TRUE} ] ; then echo "{DEBUG} - Remaining arguments are: |${remainingArgs}|" ; fi;
 
 # Check remaining input data if there is not extra flags
